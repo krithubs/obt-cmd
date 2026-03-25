@@ -5,13 +5,12 @@
   "scripts": {
     "dev": "next dev",
     "dev:debug": "NODE_ENV=development next dev --port 3003",
-    "build": "next build",
+    "build": "prisma generate && next build",
+    "postinstall": "prisma generate",
     "start": "next start",
     "lint": "next lint"
   },
-  "prisma": {
-    "seed": "tsx prisma/seed.ts"
-  },
+  "prisma": {},
   "dependencies": {
     "@hookform/resolvers": "^3.3.2",
     "@prisma/client": "^5.7.1",
