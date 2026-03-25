@@ -1,0 +1,67 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model AuditLog {
+  id         String   @id
+  action     String
+  resource   String
+  resourceId String?
+  details    String?
+  ipAddress  String?
+  userAgent  String?
+  createdAt  DateTime @default(now())
+  userId     String
+  user       User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Complaint {
+  id          String   @id
+  ticketNo    String   @unique
+  name        String
+  phone       String
+  type        String
+  description String
+  location    String?
+  latitude    Float?
+  longitude   Float?
+  status      String   @default("PENDING")
+  notes       String?
+  images      String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime
+  assignedTo  String?
+  user       User?    @relation(fields: [assignedTo], references: [id])
+}
+
+model News {
+  id        String   @id
+  title     String
+  content   String
+  category  String
+  images    String   @default("[]")
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime
+  authorId  String
+  user      User    @relation(fields: [authorId], references: [id], onDelete: Cascade)
+}
+
+model User {
+  id         String       @id
+  email      String       @unique
+  password   String
+  name       String
+  role       String       @default("STAFF")
+  isActive   Boolean      @default(true)
+  createdAt  DateTime     @default(now())
+  updatedAt  DateTime
+  audit_logs AuditLog[]
+  complaints Complaint[]
+  news       News[]
+}

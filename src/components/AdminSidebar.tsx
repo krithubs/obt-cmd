@@ -1,0 +1,69 @@
+'use client'
+
+import Link from 'next/link'
+import { usePathname } from 'next/navigation'
+import { BarChart3, FileText, Users, TrendingUp, AlertCircle, LogOut, Home } from 'lucide-react'
+
+const NAV_ITEMS = [
+  { href: '/admin/dashboard', label: 'แดชบอร์ด', icon: BarChart3 },
+  { href: '/admin/complaints', label: 'รายการคำร้อง', icon: FileText },
+  { href: '/admin/news', label: 'ประชาสัมพันธ์', icon: TrendingUp },
+  { href: '/admin/users', label: 'ผู้ใช้', icon: Users },
+  { href: '/admin/audit', label: 'บันทึกการทำงาน', icon: AlertCircle },
+]
+
+export default function AdminSidebar() {
+  const pathname = usePathname()
+
+  return (
+    <div className="w-64 bg-gradient-to-b from-gray-900 to-gray-800 min-h-screen sticky top-0 flex flex-col">
+      <div className="p-6">
+        <div className="flex items-center space-x-3">
+          <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-700 rounded-xl flex items-center justify-center shadow-lg shadow-blue-500/25">
+            <Home className="w-5 h-5 text-white" />
+          </div>
+          <div>
+            <h2 className="text-white text-lg font-bold">อบต.โหล่งขอด</h2>
+            <p className="text-gray-400 text-xs">ระบบจัดการคำร้อง</p>
+          </div>
+        </div>
+      </div>
+
+      <nav className="mt-2 flex-1 px-3 space-y-1">
+        {NAV_ITEMS.map((item) => {
+          const isActive = pathname === item.href
+          return (
+            <Link
+              key={item.href}
+              href={item.href}
+              className={`flex items-center px-4 py-3 rounded-xl transition-all ${
+                isActive
+                  ? 'text-white bg-white/10 backdrop-blur-sm'
+                  : 'text-gray-400 hover:text-white hover:bg-white/5'
+              }`}
+            >
+              <item.icon className={`w-5 h-5 mr-3 ${isActive ? 'text-blue-400' : ''}`} />
+              <span className={isActive ? 'font-medium' : ''}>{item.label}</span>
+            </Link>
+          )
+        })}
+      </nav>
+
+      <div className="p-4 mx-3 mb-3 bg-white/5 rounded-xl">
+        <div className="flex items-center space-x-3">
+          <div className="w-9 h-9 bg-gradient-to-br from-blue-400 to-purple-500 rounded-lg flex items-center justify-center text-white text-sm font-bold">
+            A
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-white text-sm font-medium truncate">Administrator</p>
+            <p className="text-gray-500 text-xs truncate">admin@longkhod.local</p>
+          </div>
+        </div>
+        <Link href="/admin/login" className="flex items-center text-gray-500 hover:text-red-400 mt-3 text-sm transition-colors">
+          <LogOut className="w-4 h-4 mr-2" />
+          ออกจากระบบ
+        </Link>
+      </div>
+    </div>
+  )
+}
