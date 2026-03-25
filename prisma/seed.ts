@@ -23,7 +23,6 @@ async function main() {
       name: 'ผู้ดูแลระบบ อบต.โหล่งขอด',
       password: hashedPassword,
       role: 'ADMIN',
-      isActive: true,
       createdAt: new Date(),
       updatedAt: new Date(),
     },
