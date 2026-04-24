@@ -270,28 +270,28 @@ export default function PortalHome() {
               <div className="lg:w-1/3 text-center lg:text-right">
                 {/* Mobile: 3 stats (เดือนนี้) */}
                 <div className="grid grid-cols-3 gap-2 sm:hidden">
-                    <Link href="/portal/tracking" className="bg-white/10 backdrop-blur rounded-lg p-2 border border-white/20 hover:bg-white/20 transition-colors">
+                    <Link href="/portal/tracking" className="bg-white/10 backdrop-blur rounded-lg p-3 border border-white/20 hover:bg-white/20 transition-colors">
                       <div className="text-center">
-                        <div className="text-lg font-bold text-white">
+                        <div className="text-xl font-bold text-white mb-1">
                           <AnimatedNumber value={stats.thisMonth} />
                         </div>
-                        <div className="text-[10px] text-blue-100 text-thai">เดือนนี้</div>
+                        <div className="text-xs text-blue-100 text-thai">คำร้องเดือนนี้</div>
                       </div>
                     </Link>
-                    <Link href="/portal/tracking" className="bg-white/10 backdrop-blur rounded-lg p-2 border border-white/20 hover:bg-white/20 transition-colors">
+                    <Link href="/portal/tracking" className="bg-white/10 backdrop-blur rounded-lg p-3 border border-white/20 hover:bg-white/20 transition-colors">
                       <div className="text-center">
-                        <div className="text-lg font-bold text-yellow-300">
+                        <div className="text-xl font-bold text-yellow-300 mb-1">
                           <AnimatedNumber value={stats.thisMonthInProgress} />
                         </div>
-                        <div className="text-[10px] text-blue-100 text-thai">รับเรื่อง</div>
+                        <div className="text-xs text-blue-100 text-thai">รับเรื่องแล้ว</div>
                       </div>
                     </Link>
-                    <Link href="/portal/tracking" className="bg-white/10 backdrop-blur rounded-lg p-2 border border-white/20 hover:bg-white/20 transition-colors">
+                    <Link href="/portal/tracking" className="bg-white/10 backdrop-blur rounded-lg p-3 border border-white/20 hover:bg-white/20 transition-colors">
                       <div className="text-center">
-                        <div className="text-lg font-bold text-green-300">
+                        <div className="text-xl font-bold text-green-300 mb-1">
                           <AnimatedNumber value={stats.thisMonthResolved} />
                         </div>
-                        <div className="text-[10px] text-blue-100 text-thai">สำเร็จ</div>
+                        <div className="text-xs text-blue-100 text-thai">แก้ไขสำเร็จ</div>
                       </div>
                     </Link>
                 </div>
