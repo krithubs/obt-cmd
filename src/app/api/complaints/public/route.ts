@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 
+export const dynamic = 'force-dynamic'
+
 /**
  * Public API for complaints - returns limited fields only (no personal data)
  * Used by the portal page to display recent complaints

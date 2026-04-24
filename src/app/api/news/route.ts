@@ -3,6 +3,8 @@ import { prisma } from '@/lib/prisma'
 import { FIELD_LIMITS } from '@/lib/fieldLimits'
 import { requireAuth } from '@/lib/apiAuth'
 
+export const dynamic = 'force-dynamic'
+
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
