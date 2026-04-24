@@ -308,8 +308,8 @@ export default function PortalHome() {
           </div>
         </div>
 
-        {/* Quick Stats */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6 mb-8">
+        {/* Quick Stats — hidden on mobile */}
+        <div className="hidden sm:grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6 mb-8">
           <Link href="/portal/tracking" className="card-soft rounded-2xl p-4 sm:p-6 hover:shadow-soft-lg transition-all duration-300 transform hover:scale-105">
             <div className="flex items-center justify-between mb-3 sm:mb-4">
               <div className="w-10 h-10 sm:w-12 sm:h-12 bg-purple-100 rounded-2xl flex items-center justify-center">
