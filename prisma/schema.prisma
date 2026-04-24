@@ -3,8 +3,9 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DATABASE_URL")
 }
 
 model AuditLog {
@@ -35,7 +36,7 @@ model Complaint {
   images      String
   resolutionImages String @default("[]")
   createdAt   DateTime @default(now())
-  updatedAt   DateTime
+  updatedAt   DateTime @updatedAt
   assignedTo  String?
   user       User?    @relation(fields: [assignedTo], references: [id])
 }
@@ -52,7 +53,7 @@ model News {
   feelingActivity String   @default("")
   isActive        Boolean  @default(true)
   createdAt       DateTime @default(now())
-  updatedAt       DateTime
+  updatedAt       DateTime @updatedAt
   authorId        String
   user            User    @relation(fields: [authorId], references: [id], onDelete: Cascade)
 }
@@ -65,7 +66,7 @@ model User {
   role       String       @default("STAFF")
   isActive   Boolean      @default(true)
   createdAt  DateTime     @default(now())
-  updatedAt  DateTime
+  updatedAt  DateTime     @updatedAt
   audit_logs AuditLog[]
   complaints Complaint[]
   news       News[]
