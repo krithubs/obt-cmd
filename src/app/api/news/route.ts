@@ -25,7 +25,9 @@ export async function GET(request: NextRequest) {
       taggedUsers: JSON.parse(item.taggedUsers || '[]')
     }))
     
-    return NextResponse.json({ news })
+    return NextResponse.json({ news }, {
+      headers: { 'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate' }
+    })
   } catch (error) {
     console.error('Error fetching news:', error)
     return NextResponse.json(

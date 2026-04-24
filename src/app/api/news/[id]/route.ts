@@ -112,6 +112,8 @@ export async function PUT(
       ...updatedNews,
       images: JSON.parse(updatedNews.images || '[]'),
       taggedUsers: JSON.parse(updatedNews.taggedUsers || '[]')
+    }, {
+      headers: { 'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate' }
     })
   } catch (error) {
     console.error('Error updating news:', error)

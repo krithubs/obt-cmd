@@ -24,7 +24,9 @@ export async function GET() {
         // Intentionally exclude: name, phone, email, notes, assignedTo
       }
     })
-    return NextResponse.json(complaints)
+    return NextResponse.json(complaints, {
+      headers: { 'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate' }
+    })
   } catch (error) {
     console.error('Error fetching public complaints:', error)
     return NextResponse.json(
