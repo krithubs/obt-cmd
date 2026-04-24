@@ -100,10 +100,7 @@ export default function NewsPage() {
         ? '/api/news'
         : `/api/news?category=${selectedCategory}`
 
-      const response = await fetch(url, {
-        cache: 'no-cache',
-        headers: { 'Cache-Control': 'no-cache' }
-      })
+      const response = await fetch(url)
       const data = await response.json()
 
       if (response.ok) {

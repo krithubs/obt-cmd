@@ -37,12 +37,7 @@ export default function TrackingPage() {
 
   const fetchComplaints = async () => {
     try {
-      const response = await fetch('/api/complaints/public', {
-        cache: 'no-cache',
-        headers: {
-          'Cache-Control': 'no-cache'
-        }
-      })
+      const response = await fetch('/api/complaints/public')
       if (response.ok) {
         const data = await response.json()
         // Sort by creation date (newest first)

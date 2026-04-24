@@ -44,6 +44,8 @@ interface RecentComplaint {
   name: string
   description: string
   location: string
+  images?: string[]
+  resolutionImages?: string[]
 }
 
 interface Stats {
@@ -81,76 +83,54 @@ export default function PortalHome() {
     fetchData()
   }, [])
 
-  // Fetch real data from APIs
+  // Fetch real data from APIs — parallel requests, no loading screen
   const fetchData = async () => {
     try {
-      setDataLoading(true)
-      
-      // Fetch news from real API
-      const newsResponse = await fetch('/api/news', {
-        cache: 'no-cache',
-        headers: {
-          'Cache-Control': 'no-cache'
-        }
-      })
-      if (newsResponse.ok) {
-        const newsData = await newsResponse.json()
-        // Sort by creation date (newest first) - convert string dates to Date objects for proper sorting
-        const sortedNews = newsData.news.sort((a: any, b: any) => {
-          const dateA = new Date(a.createdAt).getTime()
-          const dateB = new Date(b.createdAt).getTime()
-          return dateB - dateA // newest first
-        })
-        
-        // Transform all news data
-        const transformedNews = sortedNews.map((item: any) => ({
-          id: item.id,
-          title: item.title,
-          category: getCategoryText(item.category),
-          createdAt: item.createdAt,
-          author: item.author?.name || 'ผู้ดูแลระบบ',
-          summary: item.content?.substring(0, 100) + '...' || ''
-        }))
-        
-        setAllNews(transformedNews)
-        
-        // Set initial page data
-        const initialNews = transformedNews.slice(0, newsPerPage)
-        setLatestNews(initialNews)
-      }
+    // Fire both requests in parallel
+    const [newsResponse, complaintsResponse] = await Promise.allSettled([
+      fetch('/api/news'),
+      fetch('/api/complaints/public')
+    ])
 
-      // Fetch complaints from public API (no personal data exposed)
-      const complaintsResponse = await fetch('/api/complaints/public', {
-        cache: 'no-cache',
-        headers: {
-          'Cache-Control': 'no-cache'
-        }
-      })
-      if (complaintsResponse.ok) {
-        const complaintsData = await complaintsResponse.json()
-        
-        // Sort by creation date (newest first) - convert string dates to Date objects for proper sorting
-        const sortedComplaints = complaintsData.sort((a: any, b: any) => {
-          const dateA = new Date(a.createdAt).getTime()
-          const dateB = new Date(b.createdAt).getTime()
-          return dateB - dateA // newest first
-        })
-        
-        // Transform data to match portal format - get only 3 latest
-        const transformedComplaints = sortedComplaints.slice(0, 3).map((item: any) => ({
-          id: item.id,
-          ticketNo: item.ticketNo,
-          type: item.type,
-          status: getStatusText(item.status),
-          createdAt: item.createdAt,
-          description: item.description || '',
-          location: item.location || 'ไม่ระบุ'
-        }))
-        setRecentComplaints(transformedComplaints)
-        
-        // Update stats based on real data
-        const total = complaintsData.length
-        const resolved = complaintsData.filter((c: any) => c.status === 'RESOLVED').length
+    // Process news
+    if (newsResponse.status === 'fulfilled' && newsResponse.value.ok) {
+      const newsData = await newsResponse.value.json()
+      const items = newsData.news || newsData
+      const transformedNews = items.map((item: any) => ({
+        id: item.id,
+        title: item.title,
+        content: item.content || '',
+        category: getCategoryText(item.category),
+        createdAt: item.createdAt,
+        author: item.author?.name || 'ผู้ดูแลระบบ',
+        summary: item.content?.substring(0, 100) + '...' || '',
+        images: Array.isArray(item.images) ? item.images : []
+      }))
+      setAllNews(transformedNews)
+      setLatestNews(transformedNews.slice(0, newsPerPage))
+    }
+
+    // Process complaints
+    if (complaintsResponse.status === 'fulfilled' && complaintsResponse.value.ok) {
+      const complaintsData = await complaintsResponse.value.json()
+
+      // Only take 3 latest for display
+      const transformedComplaints = complaintsData.slice(0, 3).map((item: any) => ({
+        id: item.id,
+        ticketNo: item.ticketNo,
+        type: item.type,
+        status: getStatusText(item.status),
+        createdAt: item.createdAt,
+        description: item.description || '',
+        location: item.location || 'ไม่ระบุ',
+        images: item.images || [],
+        resolutionImages: item.resolutionImages || []
+      }))
+      setRecentComplaints(transformedComplaints)
+
+      // Stats
+      const total = complaintsData.length
+      const resolved = complaintsData.filter((c: any) => c.status === 'RESOLVED').length
         const inProgress = complaintsData.filter((c: any) => c.status === 'IN_PROGRESS').length
         const pending = complaintsData.filter((c: any) => c.status === 'PENDING').length
         const successRate = total > 0 ? Math.round((resolved / total) * 100) : 0
@@ -176,8 +156,6 @@ export default function PortalHome() {
       }
     } catch (error) {
       console.error('Error fetching data:', error)
-    } finally {
-      setDataLoading(false)
     }
   }
 
@@ -259,10 +237,6 @@ export default function PortalHome() {
   }
 
 
-  if (dataLoading) {
-    return <PageLoading bgClass="bg-gradient-to-br from-blue-50 via-white to-green-50" />
-  }
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-green-50">
       {/* Modern Header */}
@@ -294,40 +268,40 @@ export default function PortalHome() {
                 </div>
               </div>
               <div className="lg:w-1/3 text-center lg:text-right">
-                {/* 4 Stats Boxes */}
+                {/* 4 Stats Boxes — clickable to tracking page */}
                 <div className="grid grid-cols-2 gap-2">
-                    <div className="bg-white/10 backdrop-blur rounded-lg p-3 border border-white/20">
+                    <Link href="/portal/tracking" className="bg-white/10 backdrop-blur rounded-lg p-3 border border-white/20 hover:bg-white/20 transition-colors cursor-pointer">
                       <div className="text-center">
                         <div className="text-xl font-bold text-white mb-1">
                           <AnimatedNumber value={stats.total} />
                         </div>
                         <div className="text-xs text-blue-100 text-thai">คำร้องทั้งหมด</div>
                       </div>
-                    </div>
-                    <div className="bg-white/10 backdrop-blur rounded-lg p-3 border border-white/20">
+                    </Link>
+                    <Link href="/portal/tracking" className="bg-white/10 backdrop-blur rounded-lg p-3 border border-white/20 hover:bg-white/20 transition-colors cursor-pointer">
                       <div className="text-center">
                         <div className="text-xl font-bold text-green-300 mb-1">
                           <AnimatedNumber value={stats.resolved} />
                         </div>
                         <div className="text-xs text-blue-100 text-thai">สำเร็จแล้ว</div>
                       </div>
-                    </div>
-                    <div className="bg-white/10 backdrop-blur rounded-lg p-3 border border-white/20">
+                    </Link>
+                    <Link href="/portal/tracking" className="bg-white/10 backdrop-blur rounded-lg p-3 border border-white/20 hover:bg-white/20 transition-colors cursor-pointer">
                       <div className="text-center">
                         <div className="text-xl font-bold text-yellow-300 mb-1">
                           <AnimatedNumber value={stats.inProgress} />
                         </div>
                         <div className="text-xs text-blue-100 text-thai">กำลังดำเนินการ</div>
                       </div>
-                    </div>
-                    <div className="bg-white/10 backdrop-blur rounded-lg p-3 border border-white/20">
+                    </Link>
+                    <Link href="/portal/tracking" className="bg-white/10 backdrop-blur rounded-lg p-3 border border-white/20 hover:bg-white/20 transition-colors cursor-pointer">
                       <div className="text-center">
                         <div className="text-xl font-bold text-red-300 mb-1">
                           <AnimatedNumber value={stats.pending} />
                         </div>
                         <div className="text-xs text-blue-100 text-thai">รอดำเนินการ</div>
                       </div>
-                    </div>
+                    </Link>
                 </div>
               </div>
             </div>
@@ -336,7 +310,7 @@ export default function PortalHome() {
 
         {/* Quick Stats */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6 mb-8">
-          <div className="card-soft rounded-2xl p-4 sm:p-6 hover:shadow-soft-lg transition-all duration-300 transform hover:scale-105">
+          <Link href="/portal/tracking" className="card-soft rounded-2xl p-4 sm:p-6 hover:shadow-soft-lg transition-all duration-300 transform hover:scale-105">
             <div className="flex items-center justify-between mb-3 sm:mb-4">
               <div className="w-10 h-10 sm:w-12 sm:h-12 bg-purple-100 rounded-2xl flex items-center justify-center">
                 <FileText className="w-5 h-5 sm:w-6 sm:h-6 text-purple-600" />
@@ -352,9 +326,9 @@ export default function PortalHome() {
               <span className="hidden sm:inline">คำร้องที่เข้ามาในเดือนนี้</span>
               <span className="sm:hidden">{stats.thisMonth} รายการ</span>
             </div>
-          </div>
+          </Link>
 
-          <div className="card-soft rounded-2xl p-4 sm:p-6 hover:shadow-soft-lg transition-all duration-300 transform hover:scale-105">
+          <Link href="/portal/tracking" className="card-soft rounded-2xl p-4 sm:p-6 hover:shadow-soft-lg transition-all duration-300 transform hover:scale-105">
             <div className="flex items-center justify-between mb-3 sm:mb-4">
               <div className="w-10 h-10 sm:w-12 sm:h-12 bg-blue-100 rounded-2xl flex items-center justify-center">
                 <FileText className="w-5 h-5 sm:w-6 sm:h-6 text-blue-600" />
@@ -370,9 +344,9 @@ export default function PortalHome() {
               <span className="hidden sm:inline">กำลังดำเนินการ/รอดำเนินการ</span>
               <span className="sm:hidden">{stats.thisMonthInProgress} รายการ</span>
             </div>
-          </div>
+          </Link>
 
-          <div className="card-soft rounded-2xl p-4 sm:p-6 hover:shadow-soft-lg transition-all duration-300 transform hover:scale-105">
+          <Link href="/portal/tracking" className="card-soft rounded-2xl p-4 sm:p-6 hover:shadow-soft-lg transition-all duration-300 transform hover:scale-105">
             <div className="flex items-center justify-between mb-3 sm:mb-4">
               <div className="w-10 h-10 sm:w-12 sm:h-12 bg-green-100 rounded-2xl flex items-center justify-center">
                 <CheckCircle className="w-5 h-5 sm:w-6 sm:h-6 text-green-600" />
@@ -388,7 +362,7 @@ export default function PortalHome() {
               <span className="hidden sm:inline">ดำเนินการแก้ไขสำเร็จในเดือนนี้</span>
               <span className="sm:hidden">สำเร็จแล้ว</span>
             </div>
-          </div>
+          </Link>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -414,72 +388,41 @@ export default function PortalHome() {
                   ) : (
                     latestNews.map((news) => {
                       const content = news.content || ''
-                      const truncatedContent = content.length > 150 
-                        ? content.substring(0, 150) + '...' 
-                        : content
-                      const hasMore = content.length > 150
-                      
+                      const truncatedContent = content.replace(/<[^>]*>/g, '').substring(0, 150)
+
                       return (
-                      <div key={news.id} className="bg-white rounded-xl border border-gray-200 overflow-hidden hover:shadow-md transition-shadow">
-                        {/* Post Header */}
-                        <div className="p-4 border-b border-gray-100">
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center space-x-3">
-                              <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center">
-                                <Users className="w-5 h-5 text-white" />
-                              </div>
-                              <div>
-                                <p className="font-medium text-gray-900 text-sm">{news.author}</p>
-                                <p className="text-xs text-gray-500">{formatDate(news.createdAt)}</p>
-                              </div>
-                            </div>
-                            <span className={`px-2 py-1 text-xs font-medium rounded-full ${getCategoryColor(news.category)}`}>
-                              {getCategoryText(news.category)}
-                            </span>
-                          </div>
-                        </div>
-
-                        {/* Post Content */}
-                        <div className="p-4">
-                          <h4 className="font-semibold text-gray-900 mb-2 text-thai">{news.title}</h4>
-                          <p className="text-sm text-gray-700 text-thai whitespace-pre-line">
-                            {truncatedContent}
-                            {hasMore && (
-                              <Link href={`/portal/news`} className="text-blue-600 hover:text-blue-700 font-medium ml-1">
-                                อ่านต่อ
-                              </Link>
-                            )}
-                          </p>
-                        </div>
-
-                        {/* Post Images */}
+                      <Link key={news.id} href="/portal/news" className="block bg-white rounded-xl border border-gray-200 overflow-hidden hover:shadow-md transition-shadow">
+                        {/* Post Images — show first image as thumbnail */}
                         {news.images && news.images.length > 0 && (
-                          <div className={`grid gap-1 ${
-                            news.images.length === 1 ? 'grid-cols-1' :
-                            news.images.length === 2 ? 'grid-cols-2' :
-                            news.images.length === 3 ? 'grid-cols-3' :
-                            'grid-cols-2'
-                          }`}>
-                            {news.images.slice(0, 4).map((image, idx) => (
-                              <div key={idx} className="relative aspect-square overflow-hidden bg-gray-100">
-                                <img 
-                                  src={image} 
-                                  alt={`${news.title} - ${idx + 1}`}
-                                  className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
-                                  onError={(e) => {
-                                    e.currentTarget.src = 'https://via.placeholder.com/400x400?text=No+Image'
-                                  }}
-                                />
-                                {idx === 3 && news.images.length > 4 && (
-                                  <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
-                                    <span className="text-white text-2xl font-bold">+{news.images.length - 4}</span>
-                                  </div>
-                                )}
-                              </div>
-                            ))}
+                          <div className="w-full h-40 overflow-hidden bg-gray-100">
+                            <img
+                              src={news.images[0]}
+                              alt={news.title}
+                              className="w-full h-full object-cover"
+                              loading="lazy"
+                            />
                           </div>
                         )}
-                      </div>
+                        {/* Post Header */}
+                        <div className="p-4">
+                          <div className="flex items-center justify-between mb-2">
+                            <div className="flex items-center space-x-3">
+                              <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center">
+                                <Users className="w-4 h-4 text-white" />
+                              </div>
+                              <div>
+                                <p className="font-medium text-gray-900 text-xs">{news.author}</p>
+                                <p className="text-[10px] text-gray-500">{formatDate(news.createdAt)}</p>
+                              </div>
+                            </div>
+                            <span className={`px-2 py-0.5 text-[10px] font-medium rounded-full ${getCategoryColor(news.category)}`}>
+                              {news.category}
+                            </span>
+                          </div>
+                          <h4 className="font-semibold text-gray-900 mb-1 text-sm text-thai">{news.title}</h4>
+                          <p className="text-xs text-gray-600 text-thai line-clamp-2">{truncatedContent}</p>
+                        </div>
+                      </Link>
                     )
                   })
                   )}
@@ -509,39 +452,64 @@ export default function PortalHome() {
                       <p className="text-gray-500 text-thai">ยังไม่มีคำร้อง</p>
                     </div>
                   ) : (
-                    recentComplaints.map((complaint) => (
-                    <div key={complaint.id} className="bg-gray-50 rounded-2xl p-4 hover:bg-gray-100 transition-colors overflow-hidden">
-                      <div className="mb-3">
-                        <div className="flex items-center justify-between mb-2">
-                          <span className="text-sm font-bold text-blue-600 bg-blue-50 px-3 py-1 rounded-full whitespace-nowrap">
-                            {complaint.ticketNo}
-                          </span>
-                          <span className={`px-3 py-1 text-xs font-medium rounded-full border whitespace-nowrap ${getStatusColor(complaint.status)}`}>
-                            {complaint.status}
-                          </span>
+                    recentComplaints.map((complaint) => {
+                      const beforeImages = complaint.images || []
+                      const afterImages = complaint.resolutionImages || []
+                      const hasBefore = beforeImages.length > 0
+                      const hasAfter = afterImages.length > 0
+                      const hasImages = hasBefore || hasAfter
+
+                      return (
+                      <div key={complaint.id} className="bg-gray-50 rounded-2xl p-4 hover:bg-gray-100 transition-colors overflow-hidden">
+                        {/* Before/After Images */}
+                        {hasImages && (
+                          <div className="flex gap-1 mb-3 rounded-lg overflow-hidden">
+                            {hasBefore && (
+                              <div className="relative flex-1 min-w-0">
+                                <img src={beforeImages[0]} alt="ก่อน" className="w-full h-20 object-cover rounded-lg" />
+                                <span className="absolute bottom-1 left-1 px-1.5 py-0.5 bg-black/60 text-white text-[10px] rounded font-medium">ก่อน</span>
+                              </div>
+                            )}
+                            {hasAfter && (
+                              <div className="relative flex-1 min-w-0">
+                                <img src={afterImages[0]} alt="หลัง" className="w-full h-20 object-cover rounded-lg" />
+                                <span className="absolute bottom-1 left-1 px-1.5 py-0.5 bg-green-600/80 text-white text-[10px] rounded font-medium">หลัง</span>
+                              </div>
+                            )}
+                          </div>
+                        )}
+                        <div className="mb-3">
+                          <div className="flex items-center justify-between mb-2">
+                            <span className="text-sm font-bold text-blue-600 bg-blue-50 px-3 py-1 rounded-full whitespace-nowrap">
+                              {complaint.ticketNo}
+                            </span>
+                            <span className={`px-3 py-1 text-xs font-medium rounded-full border whitespace-nowrap ${getStatusColor(complaint.status)}`}>
+                              {complaint.status}
+                            </span>
+                          </div>
+                          <div className="text-xs text-gray-500">
+                            <span className="hidden sm:inline">{formatDate(complaint.createdAt)}</span>
+                            <span className="sm:hidden md:inline">{formatDateShort(complaint.createdAt)}</span>
+                            <span className="md:hidden">{formatDateUltraShort(complaint.createdAt)}</span>
+                          </div>
                         </div>
-                        <div className="text-xs text-gray-500">
-                          <span className="hidden sm:inline">{formatDate(complaint.createdAt)}</span>
-                          <span className="sm:hidden md:inline">{formatDateShort(complaint.createdAt)}</span>
-                          <span className="md:hidden">{formatDateUltraShort(complaint.createdAt)}</span>
+                        <div className="mb-2 overflow-hidden">
+                          <p className="font-medium text-gray-900 text-thai truncate" title={complaint.description}>{complaint.description}</p>
+                          <div className="flex items-center space-x-4 mt-2 text-sm text-gray-600 overflow-hidden">
+                            <span className="flex items-center text-thai min-w-0 truncate">
+                              <MapPin className="w-4 h-4 mr-1 flex-shrink-0" />
+                              <span className="truncate">{complaint.location}</span>
+                            </span>
+                            <span className="flex items-center text-thai whitespace-nowrap">
+                              <FileText className="w-4 h-4 mr-1 flex-shrink-0" />
+                              {complaint.type}
+                            </span>
+                          </div>
                         </div>
                       </div>
-                      <div className="mb-2 overflow-hidden">
-                        <p className="font-medium text-gray-900 text-thai truncate" title={complaint.description}>{complaint.description}</p>
-                        <div className="flex items-center space-x-4 mt-2 text-sm text-gray-600 overflow-hidden">
-                          <span className="flex items-center text-thai min-w-0 truncate">
-                            <MapPin className="w-4 h-4 mr-1 flex-shrink-0" />
-                            <span className="truncate">{complaint.location}</span>
-                          </span>
-                          <span className="flex items-center text-thai whitespace-nowrap">
-                            <FileText className="w-4 h-4 mr-1 flex-shrink-0" />
-                            {complaint.type}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                  ))
-                  )}
+                    )})
+                  )
+                  }
                 </div>
               </div>
             </div>

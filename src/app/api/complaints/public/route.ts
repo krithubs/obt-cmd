@@ -9,7 +9,7 @@ export const dynamic = 'force-dynamic'
  */
 export async function GET() {
   try {
-    const complaints = await prisma.complaint.findMany({
+    const complaintsData = await prisma.complaint.findMany({
       orderBy: { createdAt: 'desc' },
       select: {
         id: true,
@@ -24,6 +24,14 @@ export async function GET() {
         // Intentionally exclude: name, phone, email, notes, assignedTo
       }
     })
+
+    // Parse JSON string fields to arrays
+    const complaints = complaintsData.map(c => ({
+      ...c,
+      images: JSON.parse(c.images || '[]'),
+      resolutionImages: JSON.parse(c.resolutionImages || '[]')
+    }))
+
     return NextResponse.json(complaints, {
       headers: { 'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate' }
     })
