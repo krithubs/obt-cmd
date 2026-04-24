@@ -268,8 +268,35 @@ export default function PortalHome() {
                 </div>
               </div>
               <div className="lg:w-1/3 text-center lg:text-right">
-                {/* 4 Stats Boxes — clickable to tracking page */}
-                <div className="grid grid-cols-2 gap-2">
+                {/* Mobile: 3 stats (เดือนนี้) */}
+                <div className="grid grid-cols-3 gap-2 sm:hidden">
+                    <Link href="/portal/tracking" className="bg-white/10 backdrop-blur rounded-lg p-2 border border-white/20 hover:bg-white/20 transition-colors">
+                      <div className="text-center">
+                        <div className="text-lg font-bold text-white">
+                          <AnimatedNumber value={stats.thisMonth} />
+                        </div>
+                        <div className="text-[10px] text-blue-100 text-thai">เดือนนี้</div>
+                      </div>
+                    </Link>
+                    <Link href="/portal/tracking" className="bg-white/10 backdrop-blur rounded-lg p-2 border border-white/20 hover:bg-white/20 transition-colors">
+                      <div className="text-center">
+                        <div className="text-lg font-bold text-yellow-300">
+                          <AnimatedNumber value={stats.thisMonthInProgress} />
+                        </div>
+                        <div className="text-[10px] text-blue-100 text-thai">รับเรื่อง</div>
+                      </div>
+                    </Link>
+                    <Link href="/portal/tracking" className="bg-white/10 backdrop-blur rounded-lg p-2 border border-white/20 hover:bg-white/20 transition-colors">
+                      <div className="text-center">
+                        <div className="text-lg font-bold text-green-300">
+                          <AnimatedNumber value={stats.thisMonthResolved} />
+                        </div>
+                        <div className="text-[10px] text-blue-100 text-thai">สำเร็จ</div>
+                      </div>
+                    </Link>
+                </div>
+                {/* Desktop: 4 stats (ทั้งหมด) */}
+                <div className="hidden sm:grid grid-cols-2 gap-2">
                     <Link href="/portal/tracking" className="bg-white/10 backdrop-blur rounded-lg p-3 border border-white/20 hover:bg-white/20 transition-colors cursor-pointer">
                       <div className="text-center">
                         <div className="text-xl font-bold text-white mb-1">
@@ -366,8 +393,8 @@ export default function PortalHome() {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Latest News */}
-          <div className="lg:col-span-2">
+          {/* Latest News — order-2 on mobile (below complaints) */}
+          <div className="lg:col-span-2 order-2 lg:order-1">
             <div className="card-soft rounded-3xl overflow-hidden h-full">
               <div className="p-6 bg-gradient-to-r from-blue-50 to-indigo-50 border-b border-gray-200">
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
@@ -432,8 +459,8 @@ export default function PortalHome() {
             </div>
           </div>
 
-          {/* Recent Complaints */}
-          <div className="space-y-6">
+          {/* Recent Complaints — order-1 on mobile (above news) */}
+          <div className="space-y-6 order-1 lg:order-2">
             <div className="card-soft rounded-3xl overflow-hidden h-full">
               <div className="p-6 bg-gradient-to-r from-gray-50 to-gray-100 border-b border-gray-200">
                 <div className="flex items-center justify-between">
