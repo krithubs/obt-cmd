@@ -69,6 +69,7 @@ export async function PUT(
         ...(sanitized.status && { status: sanitized.status }),
         ...(sanitized.notes !== undefined && { notes: sanitized.notes }),
         ...(sanitized.assignedTo !== undefined && { assignedTo: sanitized.assignedTo }),
+        ...(sanitized.resolutionImages !== undefined && { resolutionImages: JSON.stringify(sanitized.resolutionImages) }),
         updatedAt: new Date()
       }
     })

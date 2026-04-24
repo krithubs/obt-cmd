@@ -1,13 +1,11 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
-import Link from 'next/link'
-import { Search, Plus, Eye, Edit2, Trash2, Calendar, FileText, Bell, Activity, AlertTriangle, Newspaper, Filter, X, Save, Edit, Image as ImageIcon } from 'lucide-react'
+import React, { useState, useEffect, useRef } from 'react'
+import { Search, Plus, Eye, Trash2, X, Save, Edit, Upload, Image as ImageIcon, MoreHorizontal, Globe, Pin, Calendar, Megaphone, PartyPopper, Newspaper, AlertTriangle } from 'lucide-react'
 import { PageLoading } from '@/components/ui'
 import { useToast } from '@/components/ui/Toast'
-import CustomDropdown from '@/components/ui/CustomDropdown'
+import RichTextEditor from '@/components/ui/RichTextEditor'
 import { formatDate } from '@/lib/dateFormat'
-import { FIELD_LIMITS } from '@/lib/fieldLimits'
 
 interface NewsItem {
   id: string
@@ -15,621 +13,432 @@ interface NewsItem {
   content: string
   category: 'ANNOUNCEMENT' | 'ACTIVITY' | 'NEWS' | 'WARNING'
   images: string[]
+  privacySetting?: string
+  locationName?: string
   isActive: boolean
   createdAt: string
   updatedAt?: string
-  author?: {
-    id: string
-    name: string
-  }
+  author?: { id: string; name: string }
 }
 
-interface NewsFormData {
-  title: string
-  content: string
-  category: 'ANNOUNCEMENT' | 'ACTIVITY' | 'NEWS' | 'WARNING'
-  images: string[]
-  isActive: boolean
-  authorId: string
-}
+const CATEGORY_CONFIG = {
+  ANNOUNCEMENT: { label: 'ประกาศ', color: 'bg-blue-500', badge: 'bg-blue-100 text-blue-700', icon: Megaphone },
+  ACTIVITY: { label: 'กิจกรรม', color: 'bg-green-500', badge: 'bg-green-100 text-green-700', icon: PartyPopper },
+  NEWS: { label: 'ข่าวสาร', color: 'bg-purple-500', badge: 'bg-purple-100 text-purple-700', icon: Newspaper },
+  WARNING: { label: 'เตือน', color: 'bg-red-500', badge: 'bg-red-100 text-red-700', icon: AlertTriangle },
+} as const
 
 export default function NewsPage() {
   const [news, setNews] = useState<NewsItem[]>([])
   const [loading, setLoading] = useState(true)
   const [showModal, setShowModal] = useState<'add' | 'edit' | 'view' | null>(null)
   const [selectedNews, setSelectedNews] = useState<NewsItem | null>(null)
-  
-  // Search and filter states
   const [searchTerm, setSearchTerm] = useState('')
   const [categoryFilter, setCategoryFilter] = useState('ALL')
-  const [statusFilter, setStatusFilter] = useState('ALL')
-  
+  const [openMenuId, setOpenMenuId] = useState<string | null>(null)
+
   const { showToast, showConfirm } = useToast()
-  const [formData, setFormData] = useState<NewsFormData>({
+
+  const [formData, setFormData] = useState({
     title: '',
     content: '',
-    category: 'ANNOUNCEMENT',
-    images: [],
+    category: 'ANNOUNCEMENT' as NewsItem['category'],
+    images: [] as string[],
+    privacySetting: 'public' as string,
+    locationName: '',
     isActive: true,
-    authorId: '' // Will be set from logged-in user
+    authorId: 'admin-001',
   })
-  const [formErrors, setFormErrors] = useState<Partial<NewsFormData>>({})
-  const [imagePreview, setImagePreview] = useState<string[]>([])
+  const [formErrors, setFormErrors] = useState<Record<string, string>>({})
   const [uploadingImage, setUploadingImage] = useState(false)
 
+  const menuRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => { fetchNews() }, [])
   useEffect(() => {
-    fetchNews()
+    const handler = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) setOpenMenuId(null)
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
   }, [])
 
   const fetchNews = async () => {
     try {
-      const response = await fetch('/api/news')
-      if (!response.ok) {
-        throw new Error('Failed to fetch news')
-      }
-      const data = await response.json()
-      // API returns { news: [...] } for portal compatibility
-      setNews(data.news || data)
-    } catch (error) {
-      console.error('Error fetching news:', error)
-    } finally {
-      setLoading(false)
-    }
+      const res = await fetch('/api/news')
+      if (res.ok) { const data = await res.json(); setNews(data.news || data) }
+    } catch { console.error('Error fetching news') }
+    finally { setLoading(false) }
   }
 
-  const getCategoryColor = (category: string) => {
-    switch (category) {
-      case 'ANNOUNCEMENT': return 'bg-blue-100 text-blue-800'
-      case 'ACTIVITY': return 'bg-green-100 text-green-800'
-      case 'NEWS': return 'bg-purple-100 text-purple-800'
-      case 'WARNING': return 'bg-red-100 text-red-800'
-      default: return 'bg-gray-100 text-gray-800'
-    }
-  }
+  const stripHtml = (html: string) => html.replace(/<[^>]*>/g, '')
 
-  const getCategoryText = (category: string) => {
-    switch (category) {
-      case 'ANNOUNCEMENT': return 'ประกาศ'
-      case 'ACTIVITY': return 'กิจกรรม'
-      case 'NEWS': return 'ข่าวสาร'
-      case 'WARNING': return 'เตือน'
-      default: return category
-    }
-  }
-
-  const categoryFilterOptions = [
-    { value: 'ALL', label: 'ทุกประเภท' },
-    { value: 'ANNOUNCEMENT', label: 'ประกาศ' },
-    { value: 'ACTIVITY', label: 'กิจกรรม' },
-    { value: 'NEWS', label: 'ข่าวสาร' },
-    { value: 'WARNING', label: 'เตือน' }
-  ]
-
-  const statusFilterOptions = [
-    { value: 'ALL', label: 'ทั้งหมด' },
-    { value: 'true', label: 'แสดง' },
-    { value: 'false', label: 'ซ่อน' }
-  ]
-
-  const categoryOptions = [
-    { value: 'ANNOUNCEMENT', label: 'ประกาศ' },
-    { value: 'ACTIVITY', label: 'กิจกรรม' },
-    { value: 'NEWS', label: 'ข่าวสาร' },
-    { value: 'WARNING', label: 'เตือน' }
-  ]
-
-  const validateForm = (): boolean => {
-    const errors: Partial<NewsFormData> = {}
-
-    if (!formData.title.trim()) {
-      errors.title = 'กรุณาระบุหัวข้อ'
-    } else if (formData.title.trim().length < 5) {
-      errors.title = 'หัวข้อต้องมีอย่างน้อย 5 ตัวอักษร'
-    } else if (formData.title.trim().length > FIELD_LIMITS.NEWS_TITLE) {
-      errors.title = `หัวข้อต้องไม่เกิน ${FIELD_LIMITS.NEWS_TITLE} ตัวอักษร`
-    }
-
-    if (!formData.content.trim()) {
-      errors.content = 'กรุณาระบุเนื้อหา'
-    } else if (formData.content.trim().length < 10) {
-      errors.content = 'เนื้อหาต้องมีอย่างน้อย 10 ตัวอักษร'
-    } else if (formData.content.trim().length > FIELD_LIMITS.NEWS_CONTENT) {
-      errors.content = `เนื้อหาต้องไม่เกิน ${FIELD_LIMITS.NEWS_CONTENT} ตัวอักษร`
-    }
-
+  const validateForm = () => {
+    const errors: Record<string, string> = {}
+    if (!formData.title.trim()) errors.title = 'กรุณาระบุหัวข้อ'
+    if (!formData.content.trim()) errors.content = 'กรุณาระบุเนื้อหา'
+    else if (stripHtml(formData.content).trim().length < 5) errors.content = 'เนื้อหาต้องมีอย่างน้อย 5 ตัวอักษร'
     setFormErrors(errors)
     return Object.keys(errors).length === 0
   }
 
-  const handleAddImage = (url: string) => {
-    if (url.trim()) {
-      setFormData(prev => ({
-        ...prev,
-        images: [...prev.images, url.trim()]
-      }))
-      setImagePreview(prev => [...prev, url.trim()])
+  const handleUploadImages = async () => {
+    const input = document.createElement('input')
+    input.type = 'file'
+    input.accept = 'image/jpeg,image/png,image/gif,image/webp'
+    input.multiple = true
+    input.onchange = async () => {
+      const files = input.files
+      if (!files || files.length === 0) return
+      setUploadingImage(true)
+      const fd = new FormData()
+      for (let i = 0; i < Math.min(files.length, 5 - formData.images.length); i++) fd.append('files', files[i])
+      try {
+        const res = await fetch('/api/upload', { method: 'POST', body: fd })
+        if (res.ok) { const data = await res.json(); (data.urls || []).forEach((u: string) => { setFormData(p => ({ ...p, images: [...p.images, u] })) }) }
+      } catch { console.error('Upload failed') }
+      finally { setUploadingImage(false) }
     }
+    input.click()
   }
 
-  const handleRemoveImage = (index: number) => {
-    setFormData(prev => ({
-      ...prev,
-      images: prev.images.filter((_, i) => i !== index)
-    }))
-    setImagePreview(prev => prev.filter((_, i) => i !== index))
+  const removeImage = (idx: number) => {
+    setFormData(p => ({ ...p, images: p.images.filter((_, i) => i !== idx) }))
   }
 
-  const handleAddNews = () => {
+  const openAdd = () => {
     setSelectedNews(null)
-    setFormData({
-      title: '',
-      content: '',
-      category: 'ANNOUNCEMENT',
-      images: [],
-      isActive: true,
-      authorId: 'admin-001' // Use valid admin ID
-    })
-    setImagePreview([])
+    setFormData({ title: '', content: '', category: 'ANNOUNCEMENT', images: [], privacySetting: 'public', locationName: '', isActive: true, authorId: 'admin-001' })
     setFormErrors({})
     setShowModal('add')
   }
 
-  const handleEditNews = (newsItem: NewsItem) => {
-    setSelectedNews(newsItem)
+  const openEdit = (item: NewsItem) => {
+    setSelectedNews(item)
     setFormData({
-      title: newsItem.title,
-      content: newsItem.content,
-      category: newsItem.category,
-      images: newsItem.images || [],
-      isActive: newsItem.isActive,
-      authorId: newsItem.author?.id || 'admin-001'
+      title: item.title, content: item.content, category: item.category, images: item.images || [],
+      privacySetting: (item as any).privacySetting || 'public',
+      locationName: (item as any).locationName || '',
+      isActive: item.isActive, authorId: item.author?.id || 'admin-001'
     })
-    setImagePreview(newsItem.images || [])
     setFormErrors({})
     setShowModal('edit')
+    setOpenMenuId(null)
   }
 
-  const handleViewNews = (newsItem: NewsItem) => {
-    setSelectedNews(newsItem)
+  const openView = (item: NewsItem) => {
+    setSelectedNews(item)
     setShowModal('view')
+    setOpenMenuId(null)
   }
 
-  const handleDeleteNews = async (newsId: string) => {
-    const confirmed = await showConfirm({
-      title: 'ยืนยันการลบ',
-      message: 'คุณต้องการลบประชาสัมพันธ์นี้ใช่หรือไม่? การดำเนินการนี้ไม่สามารถย้อนกลับได้',
-      confirmText: 'ลบประชาสัมพันธ์',
-      type: 'danger'
-    })
-    if (!confirmed) return
-
+  const handleDelete = async (id: string) => {
+    setOpenMenuId(null)
+    const ok = await showConfirm({ title: 'ยืนยันการลบ', message: 'คุณต้องการลบโพสต์นี้ใช่หรือไม่?', confirmText: 'ลบ', type: 'danger' })
+    if (!ok) return
     try {
-      const response = await fetch(`/api/news/${newsId}`, {
-        method: 'DELETE'
-      })
-      
-      if (response.ok) {
-        setNews(news.filter(item => item.id !== newsId))
-        showToast('success', 'ลบประชาสัมพันธ์สำเร็จ')
-      } else {
-        const errorData = await response.json()
-        showToast('error', 'ไม่สามารถลบประชาสัมพันธ์', errorData.error)
-      }
-    } catch (error) {
-      console.error('Error deleting news:', error)
-      showToast('error', 'เกิดข้อผิดพลาด', 'ไม่สามารถลบประชาสัมพันธ์ได้')
-    }
+      const res = await fetch(`/api/news/${id}`, { method: 'DELETE' })
+      if (res.ok) { setNews(p => p.filter(n => n.id !== id)); showToast('success', 'ลบโพสต์สำเร็จ') }
+      else { showToast('error', 'ไม่สามารถลบโพสต์') }
+    } catch { showToast('error', 'เกิดข้อผิดพลาด') }
   }
 
-  const handleSaveNews = async () => {
+  const handleSave = async () => {
     if (!validateForm()) return
-
     try {
-      let response
-      if (showModal === 'add') {
-        response = await fetch('/api/news', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify(formData)
-        })
-      } else if (showModal === 'edit' && selectedNews) {
-        response = await fetch(`/api/news/${selectedNews.id}`, {
-          method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify(formData)
-        })
-      }
+      const res = showModal === 'add'
+        ? await fetch('/api/news', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(formData) })
+        : await fetch(`/api/news/${selectedNews!.id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(formData) })
 
-      if (response && response.ok) {
-        if (showModal === 'add') {
-          const newNews = await response.json()
-          setNews([...news, newNews])
-          showToast('success', 'เพิ่มประชาสัมพันธ์สำเร็จ', `สร้าง "${newNews.title}" เรียบร้อยแล้ว`)
-        } else if (showModal === 'edit' && selectedNews) {
-          const updatedNews = await response.json()
-          setNews(news.map(item => 
-            item.id === selectedNews.id ? updatedNews : item
-          ))
-          showToast('success', 'อัปเดตประชาสัมพันธ์สำเร็จ')
-        }
+      if (res.ok) {
+        const saved = await res.json()
+        if (showModal === 'add') { setNews(p => [saved, ...p]); showToast('success', 'เพิ่มโพสต์สำเร็จ') }
+        else { setNews(p => p.map(n => n.id === saved.id ? saved : n)); showToast('success', 'อัปเดตโพสต์สำเร็จ') }
         setShowModal(null)
       } else {
-        const errorData = response ? await response.json() : { error: 'Unknown error' }
-        showToast('error', 'ไม่สามารถบันทึกข้อมูล', errorData.error)
+        const err = await res.json()
+        showToast('error', 'ไม่สามารถบันทึก', err.error)
       }
-    } catch (error) {
-      console.error('Error saving news:', error)
-      showToast('error', 'เกิดข้อผิดพลาด', 'ไม่สามารถบันทึกข้อมูลได้')
-    }
+    } catch { showToast('error', 'เกิดข้อผิดพลาด') }
   }
 
-  const handleInputChange = (field: keyof NewsFormData, value: any) => {
-    setFormData(prev => ({ ...prev, [field]: value }))
-    // Clear error when user starts typing
-    if (formErrors[field]) {
-      setFormErrors(prev => ({ ...prev, [field]: undefined }))
-    }
-  }
-
-  // Filter news based on search and filters
   const filteredNews = news.filter(item => {
-    const matchesSearch = !searchTerm || 
-      item.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      item.content.toLowerCase().includes(searchTerm.toLowerCase())
-    
-    const matchesCategory = categoryFilter === 'ALL' || item.category === categoryFilter
-    
-    const matchesStatus = statusFilter === 'ALL' || 
-      (statusFilter === 'ACTIVE' && item.isActive) ||
-      (statusFilter === 'INACTIVE' && !item.isActive)
-    
-    return matchesSearch && matchesCategory && matchesStatus
+    const matchSearch = !searchTerm || item.title.toLowerCase().includes(searchTerm.toLowerCase()) || stripHtml(item.content).toLowerCase().includes(searchTerm.toLowerCase())
+    const matchCat = categoryFilter === 'ALL' || item.category === categoryFilter
+    return matchSearch && matchCat
   })
 
-  const clearFilters = () => {
-    setSearchTerm('')
-    setCategoryFilter('ALL')
-    setStatusFilter('ALL')
-  }
-
-  if (loading) {
-    return <PageLoading />
-  }
+  if (loading) return <PageLoading />
 
   return (
-    <>
-      <div className="p-8">
-            {/* Header */}
-            <div className="mb-6">
-              <h1 className="text-3xl font-bold text-gray-900">ประชาสัมพันธ์</h1>
-            </div>
+    <div className="min-h-screen bg-gray-100">
+      <div className="max-w-5xl mx-auto px-6 py-8">
+        {/* Header */}
+        <h1 className="text-2xl font-bold text-gray-900 mb-6">ประชาสัมพันธ์</h1>
 
-            {/* Search and Filter */}
-            <div className="bg-white rounded-lg shadow p-6 mb-6">
-              <div className="flex items-center gap-4">
-                {/* Search */}
-                <div className="relative flex-1 max-w-md">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-                  <input
-                    type="text"
-                    placeholder="ค้นหาตามหัวข้อหรือเนื้อหา"
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                </div>
+        {/* Create Post Box */}
+        <div className="bg-white rounded-xl shadow-sm p-4 mb-4">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-blue-600 flex items-center justify-center text-white font-bold text-sm flex-shrink-0">อบต</div>
+            <button onClick={openAdd} className="flex-1 text-left bg-gray-100 hover:bg-gray-200 rounded-full px-4 py-2.5 text-gray-500 text-sm transition-colors">
+              มีอะไรจะประชาสัมพันธ์ไหม?
+            </button>
+          </div>
+          <div className="flex items-center gap-2 mt-3 pt-3 border-t border-gray-100">
+            <button onClick={openAdd} className="flex-1 flex items-center justify-center gap-2 py-1.5 rounded-lg hover:bg-gray-100 text-gray-600 text-sm font-medium transition-colors">
+              <ImageIcon className="w-5 h-5 text-green-500" />
+              รูปภาพ
+            </button>
+          </div>
+        </div>
 
-                {/* Category Filter */}
-                <CustomDropdown
-                  value={categoryFilter}
-                  onChange={setCategoryFilter}
-                  options={categoryFilterOptions}
-                  className="w-40"
-                />
+        {/* Search & Filter */}
+        <div className="bg-white rounded-xl shadow-sm p-3 mb-4 flex items-center gap-2">
+          <Search className="w-4 h-4 text-gray-400 flex-shrink-0" />
+          <input
+            type="text" value={searchTerm} onChange={e => setSearchTerm(e.target.value)}
+            placeholder="ค้นหาโพสต์..."
+            className="flex-1 text-sm bg-transparent outline-none placeholder-gray-400"
+          />
+          <div className="flex gap-1">
+            {(['ALL', 'ANNOUNCEMENT', 'ACTIVITY', 'NEWS', 'WARNING'] as const).map(cat => (
+              <button
+                key={cat}
+                onClick={() => setCategoryFilter(cat)}
+                className={`px-2.5 py-1 rounded-full text-xs font-medium transition-all whitespace-nowrap ${
+                  categoryFilter === cat ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                }`}
+              >
+                {cat === 'ALL' ? 'ทั้งหมด' : CATEGORY_CONFIG[cat].label}
+              </button>
+            ))}
+          </div>
+        </div>
 
-                {/* Status Filter */}
-                <CustomDropdown
-                  value={statusFilter}
-                  onChange={setStatusFilter}
-                  options={statusFilterOptions}
-                  className="w-32"
-                />
-
-                <button 
-                  onClick={handleAddNews}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center ml-auto"
-                >
-                  <Plus className="w-5 h-5 mr-2" />
-                  เพิ่มประชาสัมพันธ์
-                </button>
-              </div>
-
-              {/* Filter Summary */}
-              <div className="mt-4 flex items-center justify-between text-sm text-gray-600">
-                <div>
-                  แสดง <span className="font-semibold text-blue-600">{filteredNews.length}</span> จาก {news.length} รายการ
-                </div>
-                {(searchTerm || categoryFilter !== 'ALL' || statusFilter !== 'ALL') && (
-                  <button
-                    onClick={clearFilters}
-                    className="px-3 py-1 text-gray-700 bg-gray-100 rounded hover:bg-gray-200 flex items-center text-sm"
-                  >
-                    <X className="w-4 h-4 mr-1" />
-                    ล้างตัวกรอง
-                  </button>
-                )}
-              </div>
-            </div>
-
-            {/* News Table */}
-            <div className="bg-white rounded-lg shadow overflow-hidden">
-              <table className="w-full">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      หัวข้อ
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-28">
-                      ประเภท
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-24">
-                      สถานะ
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-32">
-                      ผู้เขียน
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-28">
-                      วันที่
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-24">
-                      จัดการ
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {filteredNews.map((newsItem) => (
-                    <tr key={newsItem.id} className="hover:bg-gray-50">
-                      <td className="px-6 py-4">
-                        <div>
-                          <div className="text-sm font-medium text-gray-900">{newsItem.title}</div>
-                          <div className="text-sm text-gray-500 truncate max-w-xs">{newsItem.content}</div>
+        {/* News Feed */}
+        {filteredNews.length === 0 ? (
+          <div className="bg-white rounded-xl shadow-sm p-8 text-center">
+            <p className="text-gray-400">ยังไม่มีโพสต์</p>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {filteredNews.map(item => {
+              const cfg = CATEGORY_CONFIG[item.category]
+              const preview = stripHtml(item.content).substring(0, 200)
+              const needsTruncate = stripHtml(item.content).length > 200
+              return (
+                <article key={item.id} className="bg-white rounded-xl shadow-sm overflow-hidden">
+                  {/* Post Header */}
+                  <div className="flex items-center gap-3 px-4 pt-4 pb-2">
+                    <div className={`w-10 h-10 rounded-full ${cfg.color} flex items-center justify-center text-white flex-shrink-0`}>
+                      {React.createElement(cfg.icon, { className: 'w-5 h-5' })}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold text-gray-900">{item.author?.name || 'อบต. โค้ดมันเดย์'}</p>
+                      <div className="flex items-center gap-1.5 text-xs text-gray-500">
+                        <span>{formatDate(item.createdAt)}</span>
+                        <span>·</span>
+                        <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-medium ${cfg.badge}`}>{cfg.label}</span>
+                        {!item.isActive && <span className="px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-gray-100 text-gray-500">ซ่อน</span>}
+                      </div>
+                    </div>
+                    <div className="relative" ref={openMenuId === item.id ? menuRef : null}>
+                      <button onClick={() => setOpenMenuId(openMenuId === item.id ? null : item.id)} className="p-1.5 rounded-full hover:bg-gray-100 text-gray-400">
+                        <MoreHorizontal className="w-5 h-5" />
+                      </button>
+                      {openMenuId === item.id && (
+                        <div className="absolute right-0 top-8 bg-white rounded-lg shadow-lg border py-1 z-20 min-w-[140px]">
+                          <button onClick={() => openView(item)} className="w-full text-left px-4 py-2 text-sm hover:bg-gray-50 flex items-center gap-2"><Eye className="w-4 h-4" /> ดู</button>
+                          <button onClick={() => openEdit(item)} className="w-full text-left px-4 py-2 text-sm hover:bg-gray-50 flex items-center gap-2"><Edit className="w-4 h-4" /> แก้ไข</button>
+                          <button onClick={() => handleDelete(item.id)} className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center gap-2"><Trash2 className="w-4 h-4" /> ลบ</button>
                         </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${getCategoryColor(newsItem.category)}`}>
-                          {getCategoryText(newsItem.category)}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                          newsItem.isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-                        }`}>
-                          {newsItem.isActive ? 'ใช้งาน' : 'ไม่ใช้งาน'}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        {newsItem.author?.name || 'ผู้ดูแลระบบ'}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        {formatDate(newsItem.createdAt)}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        <div className="flex space-x-2">
-                          <button
-                            onClick={() => handleViewNews(newsItem)}
-                            className="text-blue-600 hover:text-blue-800"
-                            title="ดูรายละเอียด"
-                          >
-                            <Eye className="w-4 h-4" />
-                          </button>
-                          <button
-                            onClick={() => handleEditNews(newsItem)}
-                            className="text-green-600 hover:text-green-800"
-                            title="แก้ไข"
-                          >
-                            <Edit className="w-4 h-4" />
-                          </button>
-                          <button
-                            onClick={() => handleDeleteNews(newsItem.id)}
-                            className="text-red-600 hover:text-red-800"
-                            title="ลบ"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Content */}
+                  <div className="px-4 pb-2">
+                    <h3 className="text-base font-bold text-gray-900 mb-1">{item.title}</h3>
+                    {(item as any).locationName && <p className="text-xs text-gray-500 mb-1">📍 {(item as any).locationName}</p>}
+                    {item.content.includes('<') ? (
+                      <div
+                        className="text-sm text-gray-700 leading-relaxed [&_img]:rounded-lg [&_img]:max-w-full [&_img]:my-2 [&_h1]:text-lg [&_h1]:font-bold [&_h2]:text-base [&_h2]:font-bold [&_b]:font-bold [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5"
+                        dangerouslySetInnerHTML={{ __html: item.content }}
+                      />
+                    ) : (
+                      <p className="text-sm text-gray-700 leading-relaxed">{preview}{needsTruncate ? '...' : ''}</p>
+                    )}
+                  </div>
+
+                  {/* Uploaded Images */}
+                  {item.images && item.images.length > 0 && (
+                    <div className="mt-1">
+                      {item.images.length === 1 ? (
+                        <img src={item.images[0]} alt="" className="w-full max-h-[500px] object-cover" />
+                      ) : (
+                        <div className="grid grid-cols-2 gap-0.5">
+                          {item.images.slice(0, 4).map((img, i) => (
+                            <div key={i} className="relative">
+                              <img src={img} alt="" className="w-full h-48 object-cover" />
+                              {i === 3 && item.images.length > 4 && (
+                                <div className="absolute inset-0 bg-black/50 flex items-center justify-center text-white text-xl font-bold">+{item.images.length - 4}</div>
+                              )}
+                            </div>
+                          ))}
                         </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Action bar under post */}
+                  <div className="flex items-center justify-between px-4 py-2 border-t border-gray-100">
+                    <button onClick={() => openEdit(item)} className="flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-lg hover:bg-gray-100 text-gray-500 text-sm transition-colors">
+                      <Edit className="w-4 h-4" /> แก้ไข
+                    </button>
+                    <div className="w-px h-5 bg-gray-200" />
+                    <button onClick={() => handleDelete(item.id)} className="flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-lg hover:bg-red-50 text-red-500 text-sm transition-colors">
+                      <Trash2 className="w-4 h-4" /> ลบ
+                    </button>
+                  </div>
+                </article>
+              )
+            })}
+          </div>
+        )}
       </div>
 
-      {/* Modal */}
-      {showModal && (
-        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-          <div className="relative top-20 mx-auto p-5 border w-full max-w-2xl shadow-lg rounded-lg bg-white">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-bold text-gray-900">
-                {showModal === 'add' ? 'เพิ่มประชาสัมพันธ์ใหม่' : showModal === 'edit' ? 'แก้ไขประชาสัมพันธ์' : 'รายละเอียดประชาสัมพันธ์'}
-              </h3>
-              <button
-                onClick={() => setShowModal(null)}
-                className="text-gray-400 hover:text-gray-600"
-              >
-                <X className="w-5 h-5" />
-              </button>
+      {/* Create/Edit Modal */}
+      {(showModal === 'add' || showModal === 'edit') && (
+        <div className="fixed inset-0 bg-black/60 z-50 flex items-start justify-center pt-[5vh]">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-3xl overflow-hidden max-h-[90vh] overflow-y-auto">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between px-4 py-3 border-b">
+              <h3 className="text-lg font-bold">{showModal === 'add' ? 'สร้างโพสต์' : 'แก้ไขโพสต์'}</h3>
+              <button onClick={() => setShowModal(null)} className="p-1 rounded-full hover:bg-gray-100"><X className="w-5 h-5" /></button>
             </div>
 
-            {showModal === 'view' && selectedNews ? (
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">หัวข้อ</label>
-                  <p className="mt-1 text-sm text-gray-900">{selectedNews.title}</p>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">เนื้อหา</label>
-                  <p className="mt-1 text-sm text-gray-900 whitespace-pre-wrap">{selectedNews.content}</p>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">ประเภท</label>
-                  <span className={`mt-1 inline-flex px-2 py-1 text-xs leading-5 font-semibold rounded-full ${getCategoryColor(selectedNews.category)}`}>
-                    {getCategoryText(selectedNews.category)}
-                  </span>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">สถานะ</label>
-                  <span className={`mt-1 inline-flex px-2 py-1 text-xs leading-5 font-semibold rounded-full ${
-                    selectedNews.isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-                  }`}>
-                    {selectedNews.isActive ? 'ใช้งาน' : 'ไม่ใช้งาน'}
-                  </span>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">ผู้เขียน</label>
-                  <p className="mt-1 text-sm text-gray-900">{selectedNews.author?.name || 'ผู้ดูแลระบบ'}</p>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">วันที่สร้าง</label>
-                  <p className="mt-1 text-sm text-gray-900">{selectedNews.createdAt}</p>
-                </div>
-                {selectedNews.updatedAt && (
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700">วันที่อัปเดต</label>
-                    <p className="mt-1 text-sm text-gray-900">{selectedNews.updatedAt}</p>
-                  </div>
-                )}
-              </div>
-            ) : (
-              <form onSubmit={(e) => { e.preventDefault(); handleSaveNews(); }} className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">หัวข้อ *</label>
-                  <input
-                    type="text"
-                    value={formData.title}
-                    onChange={(e) => handleInputChange('title', e.target.value)}
-                    maxLength={FIELD_LIMITS.NEWS_TITLE}
-                    className={`mt-1 block w-full px-3 py-2 border ${formErrors.title ? 'border-red-500' : 'border-gray-300'} rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500`}
-                    placeholder="กรอกหัวข้อประชาสัมพันธ์"
-                  />
-                  <p className="mt-1 text-xs text-gray-400 text-right">{formData.title.length}/{FIELD_LIMITS.NEWS_TITLE}</p>
-                  {formErrors.title && <p className="mt-1 text-sm text-red-600">{formErrors.title}</p>}
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">เนื้อหา *</label>
-                  <textarea
-                    value={formData.content}
-                    onChange={(e) => handleInputChange('content', e.target.value)}
-                    rows={6}
-                    maxLength={FIELD_LIMITS.NEWS_CONTENT}
-                    className={`mt-1 block w-full px-3 py-2 border ${formErrors.content ? 'border-red-500' : 'border-gray-300'} rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500`}
-                    placeholder="กรอกเนื้อหาประชาสัมพันธ์"
-                  />
-                  <p className="mt-1 text-xs text-gray-400 text-right">{formData.content.length}/{FIELD_LIMITS.NEWS_CONTENT}</p>
-                  {formErrors.content && <p className="mt-1 text-sm text-red-600">{formErrors.content}</p>}
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">ประเภท *</label>
-                  <CustomDropdown
+            {/* Author Row */}
+            <div className="flex items-center gap-3 px-4 py-3">
+              <div className="w-10 h-10 rounded-full bg-blue-600 flex items-center justify-center text-white font-bold text-sm">อบต</div>
+              <div>
+                <p className="text-sm font-semibold text-gray-900">อบต. โค้ดมันเดย์</p>
+                <div className="flex items-center gap-2">
+                  <select
                     value={formData.category}
-                    onChange={(value) => handleInputChange('category', value as 'ANNOUNCEMENT' | 'ACTIVITY' | 'NEWS' | 'WARNING')}
-                    options={categoryOptions}
+                    onChange={e => setFormData(p => ({ ...p, category: e.target.value as NewsItem['category'] }))}
+                    className="text-xs bg-gray-100 border-0 rounded px-2 py-0.5"
+                  >
+                    {Object.entries(CATEGORY_CONFIG).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
+                  </select>
+                  <select
+                    value={formData.isActive ? 'published' : 'draft'}
+                    onChange={e => setFormData(p => ({ ...p, isActive: e.target.value === 'published' }))}
+                    className="text-xs bg-gray-100 border-0 rounded px-2 py-0.5"
+                  >
+                    <option value="published">แสดง</option>
+                    <option value="draft">แบบร่าง</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            {/* Form */}
+            <div className="px-4 pb-4 space-y-3">
+              <input
+                type="text" value={formData.title}
+                onChange={e => { setFormData(p => ({ ...p, title: e.target.value })); if (formErrors.title) setFormErrors(p => { const n = {...p}; delete n.title; return n }) }}
+                placeholder="หัวข้อโพสต์"
+                className="w-full text-lg font-bold bg-transparent outline-none placeholder-gray-400"
+              />
+              {formErrors.title && <p className="text-xs text-red-500">{formErrors.title}</p>}
+
+              <RichTextEditor
+                value={formData.content}
+                onChange={html => { setFormData(p => ({ ...p, content: html })); if (formErrors.content) setFormErrors(p => { const n = {...p}; delete n.content; return n }) }}
+                placeholder="เขียนเนื้อหาโพสต์..."
+              />
+              {formErrors.content && <p className="text-xs text-red-500">{formErrors.content}</p>}
+
+              {/* Location */}
+              <div className="flex gap-2">
+                <div className="flex-1 relative">
+                  <span className="absolute left-2 top-1/2 -translate-y-1/2 text-gray-400 text-sm">📍</span>
+                  <input
+                    type="text" value={formData.locationName}
+                    onChange={e => setFormData(p => ({ ...p, locationName: e.target.value }))}
+                    placeholder="เพิ่มสถานที่..."
+                    className="w-full pl-7 pr-3 py-1.5 bg-gray-50 rounded-lg text-sm outline-none placeholder-gray-400 focus:ring-2 focus:ring-blue-200"
                   />
                 </div>
+              </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">รูปภาพ</label>
-                  <div className="space-y-3">
-                    {imagePreview.length > 0 && (
-                      <div className="grid grid-cols-2 gap-3">
-                        {imagePreview.map((url, index) => (
-                          <div key={index} className="relative group">
-                            <img src={url} alt={`Preview ${index + 1}`} className="w-full h-32 object-cover rounded-lg" />
-                            <button
-                              type="button"
-                              onClick={() => handleRemoveImage(index)}
-                              className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
-                            >
-                              <X className="w-4 h-4" />
-                            </button>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                    <div className="flex gap-2">
-                      <input
-                        type="text"
-                        id="imageUrl"
-                        placeholder="ใส่ URL รูปภาพ (https://...)"
-                        className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                        onKeyPress={(e) => {
-                          if (e.key === 'Enter') {
-                            e.preventDefault()
-                            const input = e.target as HTMLInputElement
-                            handleAddImage(input.value)
-                            input.value = ''
-                          }
-                        }}
-                      />
-                      <button
-                        type="button"
-                        onClick={() => {
-                          const input = document.getElementById('imageUrl') as HTMLInputElement
-                          if (input) {
-                            handleAddImage(input.value)
-                            input.value = ''
-                          }
-                        }}
-                        className="px-4 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 flex items-center"
-                      >
-                        <ImageIcon className="w-4 h-4 mr-2" />
-                        เพิ่ม
+              {/* Image Previews */}
+              {formData.images.length > 0 && (
+                <div className={`grid ${formData.images.length === 1 ? 'grid-cols-1' : 'grid-cols-2'} gap-2`}>
+                  {formData.images.map((url, i) => (
+                    <div key={i} className="relative group rounded-lg overflow-hidden">
+                      <img src={url} alt="" className="w-full h-32 object-cover" />
+                      <button type="button" onClick={() => removeImage(i)} className="absolute top-1 right-1 bg-black/60 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <X className="w-3 h-3" />
                       </button>
                     </div>
-                    <p className="text-xs text-gray-500">กด Enter หรือคลิก "เพิ่ม" เพื่อเพิ่มรูปภาพ</p>
-                  </div>
+                  ))}
                 </div>
+              )}
 
-                <div className="flex items-center">
-                  <input
-                    type="checkbox"
-                    id="isActive"
-                    checked={formData.isActive}
-                    onChange={(e) => handleInputChange('isActive', e.target.checked)}
-                    className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                  />
-                  <label htmlFor="isActive" className="ml-2 block text-sm text-gray-900">
-                    ใช้งาน
-                  </label>
-                </div>
-
-                <div className="flex justify-end space-x-3 pt-4">
-                  <button
-                    type="button"
-                    onClick={() => setShowModal(null)}
-                    className="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                  >
-                    ยกเลิก
-                  </button>
-                  <button
-                    type="submit"
-                    className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 flex items-center"
-                  >
-                    <Save className="w-4 h-4 mr-2" />
-                    บันทึก
+              {/* Action bar */}
+              <div className="flex items-center justify-between pt-2 border-t">
+                <div className="flex gap-1">
+                  <button type="button" onClick={handleUploadImages} disabled={uploadingImage || formData.images.length >= 5} className="p-2 rounded-full hover:bg-green-50 text-green-600 disabled:opacity-40" title="เพิ่มรูปภาพ">
+                    <ImageIcon className="w-5 h-5" />
                   </button>
                 </div>
-              </form>
-            )}
+                <button onClick={handleSave} className="px-5 py-2 bg-blue-600 text-white rounded-lg text-sm font-semibold hover:bg-blue-700 transition-colors">
+                  {showModal === 'add' ? 'โพสต์' : 'บันทึก'}
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}
-    </>
+
+      {/* View Modal */}
+      {showModal === 'view' && selectedNews && (
+        <div className="fixed inset-0 bg-black/60 z-50 flex items-start justify-center pt-[10vh]">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-3xl overflow-hidden max-h-[80vh] overflow-y-auto">
+            <div className="flex items-center justify-between px-4 py-3 border-b sticky top-0 bg-white z-10">
+              <h3 className="text-lg font-bold">รายละเอียดโพสต์</h3>
+              <button onClick={() => setShowModal(null)} className="p-1 rounded-full hover:bg-gray-100"><X className="w-5 h-5" /></button>
+            </div>
+            <div className="px-4 py-3">
+              <div className="flex items-center gap-3 mb-3">
+                <div className={`w-10 h-10 rounded-full ${CATEGORY_CONFIG[selectedNews.category].color} flex items-center justify-center text-white`}>
+                  {React.createElement(CATEGORY_CONFIG[selectedNews.category].icon, { className: 'w-5 h-5' })}
+                </div>
+                <div>
+                  <p className="text-sm font-semibold">{selectedNews.author?.name || 'อบต. โค้ดมันเดย์'}</p>
+                  <p className="text-xs text-gray-500">{formatDate(selectedNews.createdAt)}</p>
+                </div>
+              </div>
+              <h3 className="text-lg font-bold mb-1">{selectedNews.title}</h3>
+              {(selectedNews as any).locationName && <p className="text-xs text-gray-500 mb-1">📍 {(selectedNews as any).locationName}</p>}
+              <div
+                className="text-sm text-gray-800 leading-relaxed mt-2 [&_img]:rounded-lg [&_img]:max-w-full [&_img]:my-2 [&_h1]:text-lg [&_h1]:font-bold [&_h2]:text-base [&_h2]:font-bold [&_b]:font-bold [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5"
+                dangerouslySetInnerHTML={{ __html: selectedNews.content }}
+              />
+              {selectedNews.images && selectedNews.images.length > 0 && (
+                <div className={`grid ${selectedNews.images.length === 1 ? 'grid-cols-1' : 'grid-cols-2'} gap-1 mt-3 rounded-lg overflow-hidden`}>
+                  {selectedNews.images.map((img, i) => <img key={i} src={img} alt="" className="w-full h-40 object-cover" />)}
+                </div>
+              )}
+            </div>
+            <div className="flex gap-2 px-4 py-3 border-t">
+              <button onClick={() => openEdit(selectedNews)} className="flex-1 py-2 bg-blue-600 text-white rounded-lg text-sm font-semibold hover:bg-blue-700">แก้ไข</button>
+              <button onClick={() => { handleDelete(selectedNews.id); setShowModal(null) }} className="px-4 py-2 bg-red-100 text-red-600 rounded-lg text-sm font-semibold hover:bg-red-200">ลบ</button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
   )
 }

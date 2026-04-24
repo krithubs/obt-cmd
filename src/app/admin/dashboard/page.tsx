@@ -46,7 +46,7 @@ const COMPLAINT_TYPES = [
 ]
 
 const LOCATIONS = [
-  'หมู่ 1 บ้านโหล่งขอด', 'หมู่ 2 บ้านป่าสัก', 'หมู่ 3 บ้านแม่ก๊ะ',
+  'หมู่ 1', 'หมู่ 2', 'หมู่ 3',
   'หมู่ 4 บ้านทุ่งข้าวพวง', 'หมู่ 5 บ้านห้วยน้ำดัง', 'หมู่ 6 บ้านปางกว้าง',
   'หมู่ 7 บ้านแม่แมม', 'หมู่ 8 บ้านสบก๋าย'
 ]
@@ -295,7 +295,7 @@ export default function AdminDashboard() {
   if (loading) {
     return (
       <div className="flex-1 flex items-center justify-center min-h-[60vh]">
-        <LoadingSpinner size="lg" text="กำลังโหลดแดชบอร์ด..." subText="ระบบจัดการคำร้อง อบต.โหล่งขอด" />
+        <LoadingSpinner size="lg" text="กำลังโหลดแดชบอร์ด..." subText="ระบบจัดการคำร้อง อบต. CODEMONDAY" />
       </div>
     )
   }
@@ -333,7 +333,7 @@ export default function AdminDashboard() {
               <div className="flex items-center justify-between">
                 <div>
                   <h1 className="text-2xl font-bold text-gray-900">แดชบอร์ด</h1>
-                  <p className="text-sm text-gray-500 mt-0.5">ภาพรวมระบบจัดการคำร้อง อบต.โหล่งขอด</p>
+                  <p className="text-sm text-gray-500 mt-0.5">ภาพรวมระบบจัดการคำร้อง อบต. CODEMONDAY</p>
                 </div>
 
                 <div className="flex items-center space-x-3">

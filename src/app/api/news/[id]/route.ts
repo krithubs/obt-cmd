@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { requireAuth } from '@/lib/apiAuth'
 import { FIELD_LIMITS } from '@/lib/fieldLimits'
 
 export async function GET(
@@ -18,7 +19,8 @@ export async function GET(
     }
     return NextResponse.json({
       ...newsItem,
-      images: JSON.parse(newsItem.images || '[]')
+      images: JSON.parse(newsItem.images || '[]'),
+      taggedUsers: JSON.parse(newsItem.taggedUsers || '[]')
     })
   } catch (error) {
     console.error('Error fetching news:', error)
@@ -33,6 +35,9 @@ export async function PUT(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
+  const auth = requireAuth(request)
+  if (auth instanceof NextResponse) return auth
+
   try {
     const newsData = await request.json()
 
@@ -65,23 +70,20 @@ export async function PUT(
       where: { id: params.id },
       data: {
         ...(newsData.title && { title: newsData.title }),
-        ...(newsData.content && { content: newsData.content }),
+        ...(newsData.content !== undefined && { content: newsData.content }),
         ...(newsData.category && { category: newsData.category }),
         ...(newsData.images && { images: JSON.stringify(newsData.images) }),
+        ...(newsData.privacySetting && { privacySetting: newsData.privacySetting }),
+        ...(newsData.taggedUsers && { taggedUsers: JSON.stringify(newsData.taggedUsers) }),
+        ...(newsData.locationName !== undefined && { locationName: newsData.locationName }),
+        ...(newsData.feelingActivity !== undefined && { feelingActivity: newsData.feelingActivity }),
         ...(newsData.isActive !== undefined && { isActive: newsData.isActive }),
         updatedAt: new Date()
       }
     })
 
     // Create audit log with before/after
-    let userId = newsData.userId
-    if (!userId) {
-      const adminUser = await prisma.user.findFirst({
-        where: { role: 'ADMIN' },
-        select: { id: true }
-      })
-      userId = adminUser?.id || 'admin-001'
-    }
+    const userId = auth.user?.id
     const afterUpdate = {
       title: updatedNews.title,
       content: updatedNews.content,
@@ -108,7 +110,8 @@ export async function PUT(
 
     return NextResponse.json({
       ...updatedNews,
-      images: JSON.parse(updatedNews.images || '[]')
+      images: JSON.parse(updatedNews.images || '[]'),
+      taggedUsers: JSON.parse(updatedNews.taggedUsers || '[]')
     })
   } catch (error) {
     console.error('Error updating news:', error)
@@ -123,6 +126,9 @@ export async function DELETE(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
+  const auth = requireAuth(request)
+  if (auth instanceof NextResponse) return auth
+
   try {
     // Get news info before deleting
     const news = await prisma.news.findUnique({
@@ -136,12 +142,7 @@ export async function DELETE(
 
     // Create audit log
     if (news) {
-      // Find admin user for audit log
-      const adminUser = await prisma.user.findFirst({
-        where: { role: 'ADMIN' },
-        select: { id: true }
-      })
-      const deleterId = adminUser?.id || news.authorId || 'admin-001'
+      const deleterId = auth.user?.id || news.authorId
       
       await prisma.auditLog.create({
         data: {

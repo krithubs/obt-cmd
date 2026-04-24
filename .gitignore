@@ -23,6 +23,7 @@ yarn-debug.log*
 yarn-error.log*
 
 # local env files
+.env
 .env*.local
 
 # vercel
@@ -37,3 +38,13 @@ next-env.d.ts
 
 # uploaded files
 /public/uploads
+
+# database
+*.db
+prisma/dev.db
+prisma/prisma/
+
+# scripts (local only)
+/geocode-complaints.js
+/seed-complaints.js
+/dev.db

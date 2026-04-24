@@ -17,7 +17,9 @@ export async function GET() {
         location: true,
         status: true,
         createdAt: true,
-        // Intentionally exclude: name, phone, email, notes, assignedTo, images
+        images: true,
+        resolutionImages: true,
+        // Intentionally exclude: name, phone, email, notes, assignedTo
       }
     })
     return NextResponse.json(complaints)

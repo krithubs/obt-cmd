@@ -16,12 +16,12 @@ export default function Footer() {
                 <span className="text-white font-bold text-lg">อบต</span>
               </div>
               <div>
-                <h3 className="text-xl font-bold">อบต.โหล่งขอด</h3>
-                <p className="text-blue-200 text-sm">อ.พร้าว จ.เชียงใหม่ 50190</p>
+                <h3 className="text-xl font-bold">อบต. CODEMONDAY</h3>
+                <p className="text-blue-200 text-sm">สีลม เขตบางรัก กรุงเทพมหานคร</p>
               </div>
             </div>
             <p className="text-gray-300 text-sm leading-relaxed">
-              องค์การบริหารส่วนตำบลโหล่งขอด 
+              องค์การบริหารส่วนตำบล CODEMONDAY 
               พร้อมให้บริการประชาชนด้วยความเอาใจใส่
               และประสิทธิภาพสูงสุด
             </p>
@@ -70,26 +70,26 @@ export default function Footer() {
             <div className="space-y-3">
               <div className="flex items-center space-x-3 text-gray-300">
                 <Phone className="w-5 h-5 text-blue-400 flex-shrink-0" />
-                <span className="text-sm">053-348-222</span>
+                <span className="text-sm">061 517 6466</span>
               </div>
               <div className="flex items-center space-x-3 text-gray-300">
                 <Globe className="w-5 h-5 text-blue-400 flex-shrink-0" />
-                <a href="http://www.longkhod.go.th" target="_blank" rel="noopener noreferrer" className="text-sm hover:text-white transition-colors">
-                  www.longkhod.go.th
+                <a href="http://www.codemonday.go.th" target="_blank" rel="noopener noreferrer" className="text-sm hover:text-white transition-colors">
+                  www.codemonday.go.th
                 </a>
               </div>
               <div className="flex items-center space-x-3 text-gray-300">
                 <MapPin className="w-5 h-5 text-blue-400 flex-shrink-0" />
-                <span className="text-sm">ม.5 ต.โหล่งขอด อ.พร้าว จ.เชียงใหม่</span>
+                <span className="text-sm">เขตบางรัก กรุงเทพมหานคร</span>
               </div>
               <div className="flex items-center space-x-3 text-gray-300">
                 <Facebook className="w-5 h-5 text-blue-400 flex-shrink-0" />
-                <a href="https://www.facebook.com/longkhodlocal/" target="_blank" rel="noopener noreferrer" className="text-sm hover:text-white transition-colors">
-                  @longkhodlocal
+                <a href="https://www.facebook.com/CODEMONDAYBangkok" target="_blank" rel="noopener noreferrer" className="text-sm hover:text-white transition-colors">
+                  @codemonday
                 </a>
               </div>
               <a
-                href="https://www.facebook.com/longkhodlocal/"
+                href="https://www.facebook.com/CODEMONDAYBangkok"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center space-x-2 mt-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors"
@@ -106,7 +106,7 @@ export default function Footer() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         <div className="flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0">
           <div className="text-gray-400 text-sm">
-            © 2024 องค์การบริหารส่วนตำบลโหล่งขอด. สงวนลิขสิทธิ์ทั้งหมด
+            © 2024 องค์การบริหารส่วนตำบล CODEMONDAY. สงวนลิขสิทธิ์ทั้งหมด
           </div>
           <div className="flex items-center space-x-6 text-gray-400 text-sm">
             <span>เวลาราชการ: 08:30 - 16:30 น.</span>

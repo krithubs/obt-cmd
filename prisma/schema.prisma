@@ -33,6 +33,7 @@ model Complaint {
   status      String   @default("PENDING")
   notes       String?
   images      String
+  resolutionImages String @default("[]")
   createdAt   DateTime @default(now())
   updatedAt   DateTime
   assignedTo  String?
@@ -40,16 +41,20 @@ model Complaint {
 }
 
 model News {
-  id        String   @id
-  title     String
-  content   String
-  category  String
-  images    String   @default("[]")
-  isActive  Boolean  @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime
-  authorId  String
-  user      User    @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  id              String   @id
+  title           String
+  content         String
+  category        String
+  images          String   @default("[]")
+  privacySetting  String   @default("public")
+  taggedUsers     String   @default("[]")
+  locationName    String   @default("")
+  feelingActivity String   @default("")
+  isActive        Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime
+  authorId        String
+  user            User    @relation(fields: [authorId], references: [id], onDelete: Cascade)
 }
 
 model User {

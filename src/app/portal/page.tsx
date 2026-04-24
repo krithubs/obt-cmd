@@ -21,6 +21,7 @@ import {
   Smartphone
 } from 'lucide-react'
 import Footer from '@/components/Footer'
+import PortalNavbar from '@/components/PortalNavbar'
 import { PageLoading, AnimatedNumber } from '@/components/ui'
 import { formatDate, formatDateShort, formatDateUltraShort } from '@/lib/dateFormat'
 
@@ -265,37 +266,7 @@ export default function PortalHome() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-green-50">
       {/* Modern Header */}
-      <header className="bg-gradient-to-r from-white/90 to-white/80 backdrop-blur-xl shadow-lg border-b border-slate-200/30 sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-20">
-            <div className="flex items-center space-x-6">
-              {/* Logo */}
-              <div className="w-14 h-14 bg-gradient-to-br from-blue-600 via-blue-500 to-indigo-600 rounded-3xl flex items-center justify-center shadow-soft-lg hover:shadow-soft-xl transition-all duration-300 transform hover:scale-105">
-                <span className="text-white font-bold text-xl">อบต</span>
-              </div>
-              <div>
-                <h1 className="text-2xl font-bold bg-gradient-to-r from-gray-900 to-blue-600 bg-clip-text text-transparent">อบต.โหล่งขอด</h1>
-                <p className="text-sm text-gray-600 font-medium">อ.พร้าว จ.เชียงใหม่ 50190</p>
-              </div>
-            </div>
-            
-            <nav className="hidden md:flex items-center space-x-8">
-              <Link href="/portal" className="text-gray-700 hover:text-blue-600 font-medium text-base px-4 py-2 rounded-xl hover:bg-gray-50/50 transition-all duration-300 transform hover:scale-105">
-                หน้าแรก
-              </Link>
-              <Link href="/portal/news" className="text-gray-700 hover:text-blue-600 font-medium text-base px-4 py-2 rounded-xl hover:bg-gray-50/50 transition-all duration-300 transform hover:scale-105">
-                ข่าวสาร
-              </Link>
-              <Link href="/portal/complaint-form" className="text-gray-700 hover:text-blue-600 font-medium text-base px-4 py-2 rounded-xl hover:bg-gray-50/50 transition-all duration-300 transform hover:scale-105">
-                แจ้งปัญหา
-              </Link>
-              <Link href="/portal/faq" className="text-gray-700 hover:text-blue-600 font-medium text-base px-4 py-2 rounded-xl hover:bg-gray-50/50 transition-all duration-300 transform hover:scale-105">
-                คำถาม
-              </Link>
-            </nav>
-          </div>
-        </div>
-      </header>
+      <PortalNavbar />
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Hero Section */}
@@ -309,7 +280,7 @@ export default function PortalHome() {
             <div className="flex flex-col lg:flex-row items-center justify-between">
               <div className="lg:w-2/3 mb-6 lg:mb-0">
                 <h2 className="text-3xl font-bold mb-4 text-thai-heading">ศูนย์แจ้งเหตุบรรเทาทุกข์ออนไลน์ตลอด 24 ชั่วโมง</h2>
-                <p className="text-lg mb-6 text-blue-100 text-thai">องค์การบริหารส่วนตำบลโหล่งขอด</p>
+                <p className="text-lg mb-6 text-blue-100 text-thai">องค์การบริหารส่วนตำบล CODEMONDAY</p>
                 
                 <div className="flex flex-col sm:flex-row gap-4">
                   <Link href="/portal/complaint-form" className="inline-flex items-center px-6 py-3 bg-white text-blue-600 font-semibold rounded-xl hover:bg-blue-50 transition-all duration-300 transform hover:scale-105 shadow-lg text-thai">

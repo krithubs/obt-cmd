@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { Search, ChevronLeft, FileText, Users, MapPin, Clock, AlertCircle, CheckCircle, Home } from 'lucide-react'
+import PortalNavbar from '@/components/PortalNavbar'
 import Footer from '@/components/Footer'
 import { PageLoading, ButtonSpinner } from '@/components/ui'
 import { formatDate, formatDateShort, formatDateUltraShort } from '@/lib/dateFormat'
@@ -16,7 +17,8 @@ interface Complaint {
   status: 'PENDING' | 'IN_PROGRESS' | 'RESOLVED'
   createdAt: string
   updatedAt?: string
-  // Note: name, phone, email are not included in public API for privacy
+  images?: string[]
+  resolutionImages?: string[]
 }
 
 export default function TrackingPage() {
@@ -170,36 +172,7 @@ export default function TrackingPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-green-50">
       {/* Header */}
-      <header className="bg-gradient-to-r from-white/90 to-white/80 backdrop-blur-xl shadow-lg border-b border-slate-200/30 sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-20">
-            <div className="flex items-center space-x-6">
-              <div className="w-14 h-14 bg-gradient-to-br from-blue-600 via-blue-500 to-indigo-600 rounded-3xl flex items-center justify-center shadow-soft-lg hover:shadow-soft-xl transition-all duration-300 transform hover:scale-105">
-                <span className="text-white font-bold text-xl">อบต</span>
-              </div>
-              <div>
-                <h1 className="text-2xl font-bold bg-gradient-to-r from-gray-900 to-blue-600 bg-clip-text text-transparent">อบต.โหล่งขอด</h1>
-                <p className="text-sm text-gray-600 font-medium">อ.พร้าว จ.เชียงใหม่</p>
-              </div>
-            </div>
-            
-            <nav className="hidden md:flex items-center space-x-8">
-              <Link href="/portal" className="text-gray-700 hover:text-blue-600 font-medium text-base px-4 py-2 rounded-xl hover:bg-gray-50/50 transition-all duration-300 transform hover:scale-105">
-                หน้าแรก
-              </Link>
-              <Link href="/portal/news" className="text-gray-700 hover:text-blue-600 font-medium text-base px-4 py-2 rounded-xl hover:bg-gray-50/50 transition-all duration-300 transform hover:scale-105">
-                ข่าวสาร
-              </Link>
-              <Link href="/portal/complaint-form" className="text-gray-700 hover:text-blue-600 font-medium text-base px-4 py-2 rounded-xl hover:bg-gray-50/50 transition-all duration-300 transform hover:scale-105">
-                แจ้งปัญหา
-              </Link>
-              <Link href="/portal/faq" className="text-gray-700 hover:text-blue-600 font-medium text-base px-4 py-2 rounded-xl hover:bg-gray-50/50 transition-all duration-300 transform hover:scale-105">
-                คำถาม
-              </Link>
-            </nav>
-          </div>
-        </div>
-      </header>
+      <PortalNavbar />
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Back Button */}
@@ -321,6 +294,43 @@ export default function TrackingPage() {
                     </div>
                   </div>
 
+                  {/* Before/After Images */}
+                  {(() => {
+                    const beforeImgs = (() => { try { return Array.isArray(searchResult.images) ? searchResult.images : JSON.parse(searchResult.images || '[]') } catch { return [] } })()
+                    const afterImgs = (() => { try { return Array.isArray(searchResult.resolutionImages) ? searchResult.resolutionImages : JSON.parse((searchResult as any).resolutionImages || '[]') } catch { return [] } })()
+                    if (beforeImgs.length === 0 && afterImgs.length === 0) return null
+                    return (
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <p className="text-sm font-medium text-gray-700 mb-2">📷 ก่อนแก้ไข</p>
+                          {beforeImgs.length > 0 ? (
+                            <img src={beforeImgs[0]} alt="Before" className="w-full max-h-80 object-cover rounded-lg" />
+                          ) : (
+                            <div className="h-40 rounded-lg bg-gray-200 flex items-center justify-center">
+                              <span className="text-xs text-gray-400">ไม่มีรูป</span>
+                            </div>
+                          )}
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium text-gray-700 mb-2">✅ หลังแก้ไข</p>
+                          {afterImgs.length > 0 ? (
+                            <img src={afterImgs[0]} alt="After" className="w-full max-h-80 object-cover rounded-lg" />
+                          ) : searchResult.status === 'IN_PROGRESS' ? (
+                            <div className="h-40 rounded-lg bg-blue-50 border border-blue-200 flex flex-col items-center justify-center">
+                              <span className="text-xs text-blue-600 font-medium">เจ้าหน้าที่รับเรื่องแล้ว</span>
+                              <span className="text-[10px] text-blue-400">อยู่ระหว่างดำเนินการ</span>
+                            </div>
+                          ) : (
+                            <div className="h-40 rounded-lg bg-amber-50 border border-amber-200 flex flex-col items-center justify-center">
+                              <span className="text-xs text-amber-600 font-medium">กำลังรอรับเรื่อง</span>
+                              <span className="text-[10px] text-amber-400">รอสักครู่</span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )
+                  })()}
+
                   {searchResult.updatedAt && (
                     <div className="text-sm text-gray-500 text-thai">
                       <p>อัปเดตล่าสุด: {searchResult.updatedAt}</p>
@@ -344,10 +354,14 @@ export default function TrackingPage() {
             
             <div className="p-6">
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                {currentItems.map((complaint) => (
-                  <div key={complaint.id} className="bg-gray-50 rounded-xl p-4 hover:bg-gray-100 transition-colors overflow-hidden border border-gray-200">
+                {currentItems.map((complaint) => {
+                  const beforeImages = (() => { try { return Array.isArray(complaint.images) ? complaint.images : JSON.parse(complaint.images || '[]') } catch { return [] } })()
+                  const afterImages = (() => { try { return Array.isArray(complaint.resolutionImages) ? complaint.resolutionImages : JSON.parse(complaint.resolutionImages || '[]') } catch { return [] } })()
+
+                  return (
+                  <div key={complaint.id} className="bg-gray-50 rounded-xl overflow-hidden hover:shadow-md transition-all border border-gray-200">
                     {/* Header */}
-                    <div className="flex justify-between items-start mb-3">
+                    <div className="flex justify-between items-start px-4 pt-4 pb-2">
                       <span className="text-sm font-bold text-blue-600 bg-blue-50 px-2 py-1 rounded-full whitespace-nowrap">
                         {complaint.ticketNo}
                       </span>
@@ -356,32 +370,67 @@ export default function TrackingPage() {
                         <span>{getStatusText(complaint.status)}</span>
                       </span>
                     </div>
-                    
+
+                    {/* Before / After Images */}
+                    <div className="px-4 pb-3 grid grid-cols-2 gap-2">
+                      <div>
+                        <p className="text-xs text-gray-500 mb-1">📷 ก่อนแก้ไข</p>
+                        {beforeImages.length > 0 ? (
+                          <div className="h-28 rounded-lg overflow-hidden bg-gray-200">
+                            <img src={beforeImages[0]} alt="Before" className="w-full h-full object-cover" />
+                          </div>
+                        ) : (
+                          <div className="h-28 rounded-lg bg-gray-200 flex items-center justify-center">
+                            <span className="text-xs text-gray-400">ไม่มีรูป</span>
+                          </div>
+                        )}
+                      </div>
+                      <div>
+                        <p className="text-xs text-gray-500 mb-1">✅ หลังแก้ไข</p>
+                        {afterImages.length > 0 ? (
+                          <div className="h-28 rounded-lg overflow-hidden bg-gray-200">
+                            <img src={afterImages[0]} alt="After" className="w-full h-full object-cover" />
+                          </div>
+                        ) : complaint.status === 'IN_PROGRESS' ? (
+                          <div className="h-28 rounded-lg bg-blue-50 border border-blue-200 flex flex-col items-center justify-center">
+                            <span className="text-xs text-blue-600 font-medium">เจ้าหน้าที่รับเรื่องแล้ว</span>
+                            <span className="text-[10px] text-blue-400">อยู่ระหว่างดำเนินการ</span>
+                          </div>
+                        ) : (
+                          <div className="h-28 rounded-lg bg-amber-50 border border-amber-200 flex flex-col items-center justify-center">
+                            <span className="text-xs text-amber-600 font-medium">กำลังรอรับเรื่อง</span>
+                            <span className="text-[10px] text-amber-400">รอสักครู่</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
                     {/* Content */}
-                    <div className="mb-3">
-                      <p className="font-medium text-gray-900 text-thai mb-2 line-clamp-2" title={complaint.description}>
+                    <div className="px-4 pb-3">
+                      <p className="font-medium text-gray-900 text-thai mb-2 line-clamp-2 text-sm" title={complaint.description}>
                         {complaint.description}
                       </p>
-                      <div className="space-y-1 text-sm text-gray-600">
+                      <div className="space-y-1 text-xs text-gray-600">
                         <div className="flex items-center text-thai">
-                          <MapPin className="w-4 h-4 mr-1 flex-shrink-0" />
-                          <span className="truncate">{complaint.location}</span>
+                          <MapPin className="w-3 h-3 mr-1 flex-shrink-0" />
+                          <span className="truncate">{complaint.location || 'ไม่ระบุ'}</span>
                         </div>
                         <div className="flex items-center text-thai">
-                          <FileText className="w-4 h-4 mr-1" />
+                          <FileText className="w-3 h-3 mr-1" />
                           <span className="truncate">{complaint.type}</span>
                         </div>
                       </div>
                     </div>
-                    
+
                     {/* Footer */}
-                    <div className="flex justify-between items-center pt-2 border-t border-gray-200">
+                    <div className="px-4 py-2 border-t border-gray-200">
                       <span className="text-xs text-gray-500">
                         {getRelativeTime(complaint.createdAt)}
                       </span>
                     </div>
                   </div>
-                ))}
+                  )
+                })}
               </div>
 
               {/* Pagination */}

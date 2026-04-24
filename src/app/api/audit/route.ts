@@ -1,9 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
+    const { searchParams } = new URL(request.url)
+    const resource = searchParams.get('resource')
+    const action = searchParams.get('action')
+
+    const where: any = {}
+    if (resource && resource !== 'ALL') where.resource = resource
+    if (action && action !== 'ALL') where.action = action
+
     const auditLogs = await prisma.auditLog.findMany({
+      where,
       include: {
         user: {
           select: {
@@ -14,7 +23,7 @@ export async function GET() {
         }
       },
       orderBy: { createdAt: 'desc' },
-      take: 100
+      take: 500
     })
     return NextResponse.json(auditLogs)
   } catch (error) {

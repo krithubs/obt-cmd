@@ -19,7 +19,8 @@ export async function GET(request: NextRequest) {
     // Parse images JSON string to array
     const news = newsData.map(item => ({
       ...item,
-      images: JSON.parse(item.images || '[]')
+      images: JSON.parse(item.images || '[]'),
+      taggedUsers: JSON.parse(item.taggedUsers || '[]')
     }))
     
     return NextResponse.json({ news })
@@ -37,64 +38,93 @@ export async function POST(request: NextRequest) {
   if (auth instanceof NextResponse) return auth
 
   try {
-    const newsData = await request.json()
-    
-    // Validate required fields
-    if (!newsData.title || !newsData.content || !newsData.category || !newsData.authorId) {
+    const data = await request.json()
+
+    // Validate: content or images must exist (can post images-only)
+    const hasContent = data.content && data.content.replace(/<[^>]*>/g, '').trim().length > 0
+    const hasMedia = Array.isArray(data.images) && data.images.length > 0
+    if (!hasContent && !hasMedia) {
       return NextResponse.json(
-        { error: 'กรุณาระบุข้อมูลให้ครบถ้วน' },
+        { error: 'ต้องมีเนื้อหาหรือรูปภาพอย่างน้อย 1 อย่าง' },
         { status: 400 }
       )
     }
 
-    // Length limits
-    if (newsData.title.length > FIELD_LIMITS.NEWS_TITLE) {
-      return NextResponse.json(
-        { error: `หัวข้อต้องไม่เกิน ${FIELD_LIMITS.NEWS_TITLE} ตัวอักษร` },
-        { status: 400 }
-      )
+    // Title required
+    if (!data.title || !data.title.trim()) {
+      return NextResponse.json({ error: 'กรุณาระบุหัวข้อ' }, { status: 400 })
     }
-    if (newsData.content.length > FIELD_LIMITS.NEWS_CONTENT) {
-      return NextResponse.json(
-        { error: `เนื้อหาต้องไม่เกิน ${FIELD_LIMITS.NEWS_CONTENT} ตัวอักษร` },
-        { status: 400 }
-      )
+    if (data.title.length > FIELD_LIMITS.NEWS_TITLE) {
+      return NextResponse.json({ error: `หัวข้อต้องไม่เกิน ${FIELD_LIMITS.NEWS_TITLE} ตัวอักษร` }, { status: 400 })
+    }
+    if (data.content && data.content.length > FIELD_LIMITS.NEWS_CONTENT) {
+      return NextResponse.json({ error: `เนื้อหาต้องไม่เกิน ${FIELD_LIMITS.NEWS_CONTENT} ตัวอักษร` }, { status: 400 })
     }
 
-    const newNews = await prisma.news.create({
+    // Validate privacy setting
+    const validPrivacy = ['public', 'community_only', 'private']
+    const privacySetting = validPrivacy.includes(data.privacySetting) ? data.privacySetting : 'public'
+
+    // Validate tagged users (must be array of strings)
+    let taggedUsers: string[] = []
+    if (Array.isArray(data.taggedUsers)) {
+      taggedUsers = data.taggedUsers.filter((id: unknown): id is string => typeof id === 'string').slice(0, 20)
+    }
+
+    // Sanitize optional fields
+    const locationName = typeof data.locationName === 'string' ? data.locationName.substring(0, 200) : ''
+    const feelingActivity = typeof data.feelingActivity === 'string' ? data.feelingActivity.substring(0, 100) : ''
+
+    // Validate images array
+    const images = Array.isArray(data.images)
+      ? data.images.filter((url: unknown): url is string => typeof url === 'string').slice(0, 5)
+      : []
+
+    const authorId = auth.user?.id || data.authorId
+
+    // Create post with transaction-like flow
+    const newPost = await prisma.news.create({
       data: {
         id: `news-${Date.now()}`,
-        title: newsData.title,
-        content: newsData.content,
-        category: newsData.category,
-        images: JSON.stringify(newsData.images || []),
-        isActive: newsData.isActive ?? true,
-        authorId: newsData.authorId,
+        title: data.title.trim(),
+        content: data.content || '',
+        category: data.category || 'ANNOUNCEMENT',
+        images: JSON.stringify(images),
+        privacySetting,
+        taggedUsers: JSON.stringify(taggedUsers),
+        locationName,
+        feelingActivity,
+        isActive: data.isActive ?? true,
+        authorId,
         createdAt: new Date(),
         updatedAt: new Date()
       }
     })
 
-    // Create audit log
+    // Audit log
     await prisma.auditLog.create({
       data: {
         id: `audit-${Date.now()}`,
         action: 'CREATE',
         resource: 'NEWS',
-        resourceId: newNews.id,
-        details: JSON.stringify({ title: newsData.title, category: newsData.category }),
+        resourceId: newPost.id,
+        details: JSON.stringify({ title: newPost.title, category: newPost.category, privacySetting }),
         ipAddress: request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown',
         userAgent: request.headers.get('user-agent') || 'unknown',
-        userId: newsData.authorId,
+        userId: authorId,
         createdAt: new Date()
       }
-    }).catch(err => console.error('Failed to create audit log:', err))
+    }).catch(err => console.error('Audit log failed:', err))
 
-    return NextResponse.json(newNews, { status: 201 })
+    return NextResponse.json({
+      ...newPost,
+      images: JSON.parse(newPost.images),
+      taggedUsers: JSON.parse(newPost.taggedUsers)
+    }, { status: 201 })
   } catch (error) {
-    console.error('Error creating news:', error)
+    console.error('Error creating post:', error)
     return NextResponse.json(
-      { error: 'เกิดข้อผิดพลาดในการสร้างประชาสัมพันธ์' },
+      { error: 'เกิดข้อผิดพลาดในการสร้างโพสต์' },
       { status: 500 }
     )
   }

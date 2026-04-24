@@ -69,7 +69,7 @@ export async function generateComplaintsPDFWithThai(
     y += 5;
     
     // Organization
-    addText('องค์การบริหารส่วนตำบลโหล่งขอด', 12);
+    addText('องค์การบริหารส่วนตำบล CODEMONDAY', 12);
     y += 3;
     
     // Date

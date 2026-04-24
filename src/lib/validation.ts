@@ -24,7 +24,7 @@ export const VALID_STATUSES = ['PENDING', 'IN_PROGRESS', 'RESOLVED'] as const
 export type ComplaintStatus = typeof VALID_STATUSES[number]
 
 /** Valid complaint types */
-export const VALID_TYPES = ['ถนน', 'ไฟฟ้า', 'น้ำประปา', 'สิ่งแวดล้อม', 'ความสะอาด', 'อื่นๆ'] as const
+export const VALID_TYPES = ['ถนน', 'ไฟฟ้า', 'น้ำประปา', 'สิ่งแวดล้อม', 'ความสะอาด', 'เตือนภัย', 'อุบัติเหตุ', 'อื่นๆ'] as const
 export type ComplaintType = typeof VALID_TYPES[number]
 
 /** Valid villages */
@@ -109,7 +109,6 @@ export function validateComplaintInput(data: Record<string, unknown>): Complaint
   // Required fields
   if (!name) errors.push('กรุณาระบุชื่อ-นามสกุล')
   if (!type) errors.push('กรุณาระบุประเภทปัญหา')
-  if (!village) errors.push('กรุณาระบุหมู่บ้าน')
   if (!description) errors.push('กรุณาระบุรายละเอียด')
 
   // Length limits
@@ -156,6 +155,7 @@ export interface UpdateValidationResult {
     status?: ComplaintStatus
     notes?: string
     assignedTo?: string
+    resolutionImages?: string[]
   }
 }
 
@@ -187,6 +187,14 @@ export function validateComplaintUpdate(data: Record<string, unknown>): UpdateVa
       errors.push(`ผู้รับผิดชอบต้องไม่เกิน ${LIMITS.assignedTo} ตัวอักษร`)
     } else {
       sanitized.assignedTo = assignedTo
+    }
+  }
+
+  if (data.resolutionImages !== undefined) {
+    if (Array.isArray(data.resolutionImages)) {
+      sanitized.resolutionImages = data.resolutionImages
+        .filter((img): img is string => typeof img === 'string')
+        .slice(0, 5)
     }
   }
 

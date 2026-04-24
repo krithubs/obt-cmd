@@ -37,7 +37,7 @@ export default function AdminLogin() {
               </div>
             </div>
             <h2 className="text-2xl font-bold text-center mb-2">เข้าสู่ระบบผู้ดูแล</h2>
-            <p className="text-blue-100 text-center text-sm">องค์การบริหารส่วนตำบลโหล่งขอด</p>
+            <p className="text-blue-100 text-center text-sm">องค์การบริหารส่วนตำบล CODEMONDAY</p>
           </div>
 
           {/* Form */}
@@ -54,7 +54,7 @@ export default function AdminLogin() {
                     type="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    placeholder="admin@longkhot.go.th"
+                    placeholder="admin@codemonday.go.th"
                     className="w-full pl-12 pr-4 py-3 bg-white/10 backdrop-blur border border-white/20 rounded-2xl text-white placeholder-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent transition-all"
                     required
                   />
@@ -121,7 +121,7 @@ export default function AdminLogin() {
             <div className="mt-6 p-4 bg-blue-600/20 rounded-2xl border border-blue-400/30">
               <p className="text-xs text-blue-200 text-center">
                 <strong>บัญชีสำหรับทดสอบ:</strong><br />
-                อีเมล: admin@longkhot.go.th<br />
+                อีเมล: admin@codemonday.go.th<br />
                 รหัสผ่าน: admin123
               </p>
             </div>

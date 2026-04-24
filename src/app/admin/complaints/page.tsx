@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { ChevronLeft, FileText, HelpCircle, Upload, Send, MapPin, Camera, Phone, Mail, Map, Users, TrendingUp, AlertCircle, LogOut, X, Save, Image, Calendar, ChevronDown, FileDown, Search, Eye, Plus, Filter, Home } from 'lucide-react'
+import { ChevronLeft, FileText, HelpCircle, Upload, Send, MapPin, Camera, Phone, Mail, Map, Users, TrendingUp, AlertCircle, LogOut, X, Save, Image, Calendar, ChevronDown, FileDown, Search, Eye, Plus, Filter, Home, Check, ExternalLink } from 'lucide-react'
 import { generateComplaintsExcel } from '@/lib/excel-generator'
 import { PageLoading } from '@/components/ui'
 import { useToast } from '@/components/ui/Toast'
@@ -18,13 +18,14 @@ interface Complaint {
   type: string
   description: string
   location: string
+  latitude?: number | null
+  longitude?: number | null
   status: 'PENDING' | 'IN_PROGRESS' | 'RESOLVED'
   createdAt: string
   updatedAt?: string
   internalNote?: string
   images?: string[]
   phone?: string
-  email?: string
 }
 
 interface ComplaintFormData {
@@ -35,7 +36,6 @@ interface ComplaintFormData {
   status: 'PENDING' | 'IN_PROGRESS' | 'RESOLVED'
   internalNote: string
   phone: string
-  email: string
   images: string[]
 }
 
@@ -51,7 +51,7 @@ export default function ComplaintsPage() {
   const [currentPage, setCurrentPage] = useState(1)
   const [itemsPerPage] = useState(10)
   const [loading, setLoading] = useState(true)
-  const [showModal, setShowModal] = useState<'add' | 'view' | 'status' | null>(null)
+  const [showModal, setShowModal] = useState<'add' | 'view' | 'status' | 'accept' | null>(null)
   const [selectedComplaint, setSelectedComplaint] = useState<Complaint | null>(null)
   const [formData, setFormData] = useState<ComplaintFormData>({
     name: '',
@@ -61,7 +61,6 @@ export default function ComplaintsPage() {
     status: 'PENDING',
     internalNote: '',
     phone: '',
-    email: '',
     images: []
   })
   const [formErrors, setFormErrors] = useState<Partial<ComplaintFormData>>({})
@@ -69,6 +68,8 @@ export default function ComplaintsPage() {
     status: 'PENDING' as 'PENDING' | 'IN_PROGRESS' | 'RESOLVED',
     internalNote: ''
   })
+  const [afterImageFile, setAfterImageFile] = useState<File | null>(null)
+  const [afterImagePreview, setAfterImagePreview] = useState<string | null>(null)
 
   useEffect(() => {
     fetchComplaints()
@@ -114,9 +115,9 @@ export default function ComplaintsPage() {
 
   const getStatusText = (status: string) => {
     switch (status) {
-      case 'PENDING': return 'รอดำเนินการ'
-      case 'IN_PROGRESS': return 'ดำเนินการ'
-      case 'RESOLVED': return 'ดำเนินการแล้ว'
+      case 'PENDING': return 'รอรับเรื่อง'
+      case 'IN_PROGRESS': return 'กำลังดำเนินการ'
+      case 'RESOLVED': return 'เสร็จสิ้น'
       default: return status
     }
   }
@@ -152,12 +153,6 @@ export default function ComplaintsPage() {
       errors.phone = `เบอร์โทรต้องไม่เกิน ${FIELD_LIMITS.COMPLAINT_PHONE} ตัว`
     }
 
-    if (formData.email && formData.email.length > FIELD_LIMITS.COMPLAINT_EMAIL) {
-      errors.email = `อีเมลต้องไม่เกิน ${FIELD_LIMITS.COMPLAINT_EMAIL} ตัวอักษร`
-    } else if (formData.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
-      errors.email = 'รูปแบบอีเมลไม่ถูกต้อง'
-    }
-
     setFormErrors(errors)
     return Object.keys(errors).length === 0
   }
@@ -172,11 +167,37 @@ export default function ComplaintsPage() {
       status: 'PENDING',
       internalNote: '',
       phone: '',
-      email: '',
       images: []
     })
     setFormErrors({})
     setShowModal('add')
+  }
+
+  const handleAcceptComplaint = (complaint: Complaint) => {
+    setSelectedComplaint(complaint)
+    setShowModal('accept')
+  }
+
+  const confirmAccept = async () => {
+    if (!selectedComplaint) return
+    try {
+      const response = await fetch(`/api/complaints/${selectedComplaint.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'IN_PROGRESS' })
+      })
+      if (response.ok) {
+        const raw = await response.json()
+        const updated = { ...raw, images: Array.isArray(raw.images) ? raw.images : (() => { try { return JSON.parse(raw.images) } catch { return [] } })() }
+        setComplaints(prev => prev.map(c => c.id === selectedComplaint.id ? updated : c).sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()))
+        showToast('success', 'รับเรื่องสำเร็จ', `เลขที่ ${selectedComplaint.ticketNo} อยู่ระหว่างดำเนินการ`)
+        setShowModal(null)
+      } else {
+        showToast('error', 'ไม่สามารถรับเรื่อง')
+      }
+    } catch {
+      showToast('error', 'เกิดข้อผิดพลาด')
+    }
   }
 
   const handleEditComplaint = (complaint: Complaint) => {
@@ -185,6 +206,8 @@ export default function ComplaintsPage() {
       status: complaint.status,
       internalNote: complaint.internalNote || ''
     })
+    setAfterImageFile(null)
+    setAfterImagePreview(null)
     setShowModal('status')
   }
 
@@ -229,27 +252,45 @@ export default function ComplaintsPage() {
     if (!selectedComplaint) return
 
     try {
+      let resolutionImageUrls: string[] = []
+
+      // Upload after image if provided
+      if (afterImageFile) {
+        const uploadData = new FormData()
+        uploadData.append('files', afterImageFile)
+        const uploadRes = await fetch('/api/upload', { method: 'POST', body: uploadData })
+        if (uploadRes.ok) {
+          const uploadResult = await uploadRes.json()
+          resolutionImageUrls = uploadResult.urls || []
+        }
+      }
+
       const response = await fetch(`/api/complaints/${selectedComplaint.id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          status: statusUpdateData.status,
-          internalNote: statusUpdateData.internalNote
+          status: 'RESOLVED',
+          internalNote: statusUpdateData.internalNote,
+          ...(resolutionImageUrls.length > 0 && { resolutionImages: resolutionImageUrls })
         })
       })
 
       if (response.ok) {
         const raw = await response.json()
-        const updatedComplaint = { ...raw, images: Array.isArray(raw.images) ? raw.images : (() => { try { return JSON.parse(raw.images) } catch { return [] } })() }
-        // Update complaint and maintain sorting by newest first
-        const updatedComplaints = complaints.map(item => 
+        const updatedComplaint = {
+          ...raw,
+          images: Array.isArray(raw.images) ? raw.images : (() => { try { return JSON.parse(raw.images) } catch { return [] } })()
+        }
+        const updatedComplaints = complaints.map(item =>
           item.id === selectedComplaint.id ? updatedComplaint : item
         ).sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
         setComplaints(updatedComplaints)
         showToast('success', 'อัปเดตสถานะสำเร็จ')
         setShowModal(null)
+        setAfterImageFile(null)
+        setAfterImagePreview(null)
       } else {
         const errorData = await response.json()
         showToast('error', 'ไม่สามารถอัปเดตสถานะ', errorData.error)
@@ -588,31 +629,32 @@ export default function ComplaintsPage() {
 
             {/* Complaints Table */}
             <div className="bg-white rounded-lg shadow overflow-hidden">
-              <table className="w-full table-fixed divide-y divide-gray-200">
+              <div className="overflow-x-auto">
+              <table className="w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
                   <tr>
-                    <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" style={{width: '12%'}}>
+                    <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">
                       เลขที่
                     </th>
-                    <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" style={{width: '13%'}}>
+                    <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">
                       ชื่อผู้แจ้ง
                     </th>
-                    <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" style={{width: '10%'}}>
+                    <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">
                       ประเภท
                     </th>
-                    <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" style={{width: '14%'}}>
-                      สถานที่
-                    </th>
-                    <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" style={{width: '22%'}}>
-                      รายละเอียด
-                    </th>
-                    <th className="px-3 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider" style={{width: '9%'}}>
+                    <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">
                       สถานะ
                     </th>
-                    <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" style={{width: '13%'}}>
+                    <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      สถานที่
+                    </th>
+                    <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      รายละเอียด
+                    </th>
+                    <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">
                       วันที่
                     </th>
-                    <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" style={{width: '7%'}}>
+                    <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">
                       จัดการ
                     </th>
                   </tr>
@@ -620,36 +662,67 @@ export default function ComplaintsPage() {
                 <tbody className="bg-white divide-y divide-gray-200">
                   {currentComplaints.map((complaint) => (
                     <tr key={complaint.id} className="hover:bg-gray-50">
-                      <td className="px-3 py-3 text-sm font-medium text-gray-900 truncate" title={complaint.ticketNo}>
+                      <td className="px-3 py-3 text-sm font-medium text-blue-600 whitespace-nowrap">
                         {complaint.ticketNo}
                       </td>
                       <td className="px-3 py-3">
-                        <div className="truncate text-sm font-medium text-gray-900" title={complaint.name}>
+                        <div className="text-sm font-medium text-gray-900" title={complaint.name}>
                           {complaint.name}
                         </div>
                         {complaint.phone && (
-                          <div className="text-xs text-gray-500 truncate">{complaint.phone}</div>
+                          <div className="text-xs text-gray-500">{complaint.phone}</div>
                         )}
                       </td>
-                      <td className="px-3 py-3 text-sm text-gray-900 truncate" title={complaint.type}>
+                      <td className="px-3 py-3 text-sm text-gray-900 whitespace-nowrap">
                         {typeLabels[complaint.type] || complaint.type}
                       </td>
-                      <td className="px-3 py-3 text-sm text-gray-900 truncate" title={complaint.location}>
-                        {complaint.location}
-                      </td>
-                      <td className="px-3 py-3 text-sm text-gray-900 truncate" title={complaint.description}>
-                        {complaint.description}
-                      </td>
-                      <td className="px-3 py-3 text-right">
-                        <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full whitespace-nowrap ${getStatusColor(complaint.status)}`}>
+                      <td className="px-3 py-3">
+                        {/* Mini stepper */}
+                        <div className="flex items-center space-x-1">
+                          <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs border-2 ${
+                            complaint.status === 'PENDING' ? 'bg-yellow-100 border-yellow-400 text-yellow-600' :
+                            'bg-green-500 border-green-500 text-white'
+                          }`}>
+                            {complaint.status !== 'PENDING' ? <Check className="w-3 h-3" /> : '1'}
+                          </div>
+                          <div className={`w-4 h-0.5 ${complaint.status !== 'PENDING' ? 'bg-green-400' : 'bg-gray-200'}`} />
+                          <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs border-2 ${
+                            complaint.status === 'IN_PROGRESS' ? 'bg-blue-100 border-blue-400 text-blue-600' :
+                            complaint.status === 'RESOLVED' ? 'bg-green-500 border-green-500 text-white' :
+                            'bg-gray-50 border-gray-200 text-gray-400'
+                          }`}>
+                            {complaint.status === 'RESOLVED' ? <Check className="w-3 h-3" /> : '2'}
+                          </div>
+                          <div className={`w-4 h-0.5 ${complaint.status === 'RESOLVED' ? 'bg-green-400' : 'bg-gray-200'}`} />
+                          <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs border-2 ${
+                            complaint.status === 'RESOLVED' ? 'bg-green-500 border-green-500 text-white' :
+                            'bg-gray-50 border-gray-200 text-gray-400'
+                          }`}>
+                            {complaint.status === 'RESOLVED' ? <Check className="w-3 h-3" /> : '3'}
+                          </div>
+                        </div>
+                        <p className={`mt-1 text-xs font-medium ${
+                          complaint.status === 'PENDING' ? 'text-yellow-600' :
+                          complaint.status === 'IN_PROGRESS' ? 'text-blue-600' : 'text-green-600'
+                        }`}>
                           {getStatusText(complaint.status)}
-                        </span>
-                      </td>
-                      <td className="px-3 py-3 text-sm text-gray-900 truncate" title={formatDate(complaint.createdAt)}>
-                        {formatDate(complaint.createdAt)}
+                        </p>
                       </td>
                       <td className="px-3 py-3 text-sm text-gray-900">
-                        <div className="flex space-x-2">
+                        <div className="max-w-[200px] truncate" title={complaint.location}>
+                          {complaint.location}
+                        </div>
+                      </td>
+                      <td className="px-3 py-3 text-sm text-gray-900">
+                        <div className="max-w-[250px] truncate" title={complaint.description}>
+                          {complaint.description}
+                        </div>
+                      </td>
+                      <td className="px-3 py-3 text-sm text-gray-500 whitespace-nowrap">
+                        {formatDate(complaint.createdAt)}
+                      </td>
+                      <td className="px-3 py-3">
+                        <div className="flex items-center gap-2 whitespace-nowrap">
                           <button
                             onClick={() => handleViewComplaint(complaint)}
                             className="text-blue-600 hover:text-blue-800"
@@ -657,22 +730,35 @@ export default function ComplaintsPage() {
                           >
                             <Eye className="w-4 h-4" />
                           </button>
-                          <button
-                            onClick={() => handleEditComplaint(complaint)}
-                            className="text-green-600 hover:text-green-800"
-                            title="อัปเดตสถานะ"
-                          >
-                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4">
-                              <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
-                              <path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4Z"></path>
-                            </svg>
-                          </button>
+                          {complaint.status === 'PENDING' && (
+                            <button
+                              onClick={() => handleAcceptComplaint(complaint)}
+                              className="px-3 py-1.5 bg-amber-500 text-white text-xs font-semibold rounded-full hover:bg-amber-600 shadow-sm"
+                            >
+                              รับเรื่อง
+                            </button>
+                          )}
+                          {complaint.status === 'IN_PROGRESS' && (
+                            <button
+                              onClick={() => handleEditComplaint(complaint)}
+                              className="px-3 py-1.5 bg-green-600 text-white text-xs font-semibold rounded-full hover:bg-green-700 shadow-sm"
+                            >
+                              ปิดเคส
+                            </button>
+                          )}
+                          {complaint.status === 'RESOLVED' && (
+                            <span className="text-xs text-green-600 font-medium flex items-center">
+                              <Check className="w-3 h-3 mr-1" />
+                              เสร็จสิ้น
+                            </span>
+                          )}
                         </div>
                       </td>
                     </tr>
                   ))}
                 </tbody>
               </table>
+              </div>
 
               {/* Pagination */}
               {totalPages > 1 && (
@@ -755,7 +841,7 @@ export default function ComplaintsPage() {
           <div className="relative top-20 mx-auto p-5 border w-full max-w-4xl shadow-lg rounded-lg bg-white max-h-[90vh] overflow-y-auto">
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-lg font-bold text-gray-900">
-                {showModal === 'add' ? 'เพิ่มคำร้องใหม่' : showModal === 'status' ? 'อัปเดตสถานะคำร้อง' : showModal === 'view' ? 'รายละเอียดคำร้อง' : ''}
+                {showModal === 'add' ? 'เพิ่มคำร้องใหม่' : showModal === 'status' ? 'ปิดเคส' : showModal === 'view' ? 'รายละเอียดคำร้อง' : showModal === 'accept' ? 'ยืนยันรับเรื่อง' : ''}
               </h3>
               <button
                 onClick={() => setShowModal(null)}
@@ -784,6 +870,17 @@ export default function ComplaintsPage() {
                   <div>
                     <label className="block text-sm font-medium text-gray-700">สถานที่</label>
                     <p className="mt-1 text-sm text-gray-900">{selectedComplaint.location}</p>
+                    {selectedComplaint.latitude && selectedComplaint.longitude && (
+                      <a
+                        href={`https://www.google.com/maps?q=${selectedComplaint.latitude},${selectedComplaint.longitude}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="mt-1 inline-flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800"
+                      >
+                        <ExternalLink className="w-3 h-3" />
+                        เปิดใน Google Maps
+                      </a>
+                    )}
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700">สถานะปัจจุบัน</label>
@@ -800,30 +897,51 @@ export default function ComplaintsPage() {
                   <label className="block text-sm font-medium text-gray-700">รายละเอียด</label>
                   <p className="mt-1 text-sm text-gray-900 whitespace-pre-wrap bg-gray-50 p-3 rounded">{selectedComplaint.description}</p>
                 </div>
-                
+
+                {/* Close Case Form */}
                 <div className="border-t pt-4">
-                  <h4 className="text-lg font-medium text-gray-900 mb-4">อัปเดตสถานะและบันทึกภายใน</h4>
-                  
+                  <h4 className="text-lg font-semibold text-gray-900 mb-1">ปิดคำร้อง</h4>
+                  <p className="text-sm text-gray-500 mb-4">เลขที่ {selectedComplaint.ticketNo} — {selectedComplaint.type}</p>
+
                   <div className="space-y-4">
                     <div>
-                      <label className="block text-sm font-medium text-gray-700">สถานะใหม่</label>
-                      <CustomDropdown
-                        value={statusUpdateData.status}
-                        onChange={(value) => setStatusUpdateData(prev => ({ ...prev, status: value as 'PENDING' | 'IN_PROGRESS' | 'RESOLVED' }))}
-                        options={statusUpdateOptions}
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700">บันทึกภายใน</label>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">บันทึกการแก้ไข</label>
                       <textarea
                         value={statusUpdateData.internalNote}
                         onChange={(e) => setStatusUpdateData(prev => ({ ...prev, internalNote: e.target.value }))}
-                        rows={4}
+                        rows={3}
                         maxLength={FIELD_LIMITS.COMPLAINT_INTERNAL_NOTE}
-                        className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                        placeholder="เพิ่มบันทึกภายในสำหรับเจ้าหน้าที่..."
+                        className="block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                        placeholder="ระบุรายละเอียดการแก้ไขปัญหา..."
                       />
+                    </div>
+
+                    <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                      <label className="block text-sm font-medium text-green-800 mb-2">📷 แนบรูปหลังแก้ไข (ไม่บังคับ)</label>
+                      {afterImagePreview ? (
+                        <div className="relative inline-block">
+                          <img src={afterImagePreview} alt="After preview" className="w-full max-w-xs h-40 object-cover rounded-lg border" />
+                          <button
+                            type="button"
+                            onClick={() => { setAfterImageFile(null); if (afterImagePreview) URL.revokeObjectURL(afterImagePreview); setAfterImagePreview(null) }}
+                            className="absolute top-2 right-2 w-7 h-7 bg-red-500 text-white rounded-full flex items-center justify-center hover:bg-red-600 shadow"
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                        </div>
+                      ) : (
+                        <input
+                          type="file"
+                          accept="image/jpeg,image/png"
+                          onChange={(e) => {
+                            if (e.target.files && e.target.files[0]) {
+                              setAfterImageFile(e.target.files[0])
+                              setAfterImagePreview(URL.createObjectURL(e.target.files[0]))
+                            }
+                          }}
+                          className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-green-100 file:text-green-700 hover:file:bg-green-200"
+                        />
+                      )}
                     </div>
                   </div>
                 </div>
@@ -832,16 +950,16 @@ export default function ComplaintsPage() {
                   <button
                     type="button"
                     onClick={() => setShowModal(null)}
-                    className="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                    className="px-4 py-2 border border-gray-300 rounded-lg shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
                   >
                     ยกเลิก
                   </button>
                   <button
                     onClick={handleUpdateStatus}
-                    className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 flex items-center"
+                    className="px-5 py-2 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 flex items-center"
                   >
-                    <Save className="w-4 h-4 mr-2" />
-                    อัปเดตสถานะ
+                    <Check className="w-4 h-4 mr-2" />
+                    ปิดเคส
                   </button>
                 </div>
               </div>
@@ -864,16 +982,23 @@ export default function ComplaintsPage() {
                     <p className="mt-1 text-sm text-gray-900">{selectedComplaint.phone || '-'}</p>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700">อีเมล</label>
-                    <p className="mt-1 text-sm text-gray-900">{selectedComplaint.email || '-'}</p>
-                  </div>
-                  <div>
                     <label className="block text-sm font-medium text-gray-700">ประเภท</label>
                     <p className="mt-1 text-sm text-gray-900">{selectedComplaint.type}</p>
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700">สถานที่</label>
                     <p className="mt-1 text-sm text-gray-900">{selectedComplaint.location}</p>
+                    {selectedComplaint.latitude && selectedComplaint.longitude && (
+                      <a
+                        href={`https://www.google.com/maps?q=${selectedComplaint.latitude},${selectedComplaint.longitude}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="mt-1 inline-flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800"
+                      >
+                        <ExternalLink className="w-3 h-3" />
+                        เปิดใน Google Maps
+                      </a>
+                    )}
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700">สถานะ</label>
@@ -902,8 +1027,8 @@ export default function ComplaintsPage() {
                     <div className="mt-2 grid grid-cols-3 gap-2">
                       {selectedComplaint.images.map((image: string, index: number) => (
                         <div key={index} className="relative">
-                          <img 
-                            src={image} 
+                          <img
+                            src={image}
                             alt={`รูปภาพ ${index + 1}`}
                             className="w-full h-32 object-cover rounded cursor-pointer"
                             onClick={() => window.open(image, '_blank')}
@@ -921,6 +1046,118 @@ export default function ComplaintsPage() {
                     </div>
                   </div>
                 )}
+
+                {/* Action buttons in view modal */}
+                <div className="flex justify-end space-x-3 pt-4 border-t">
+                  {selectedComplaint.status === 'PENDING' && (
+                    <button
+                      onClick={() => handleAcceptComplaint(selectedComplaint)}
+                      className="px-5 py-2 bg-amber-500 text-white text-sm font-semibold rounded-lg hover:bg-amber-600 shadow-sm flex items-center"
+                    >
+                      รับเรื่อง
+                    </button>
+                  )}
+                  {selectedComplaint.status === 'IN_PROGRESS' && (
+                    <button
+                      onClick={() => {
+                        setStatusUpdateData({ status: 'IN_PROGRESS', internalNote: '' })
+                        setAfterImageFile(null)
+                        setAfterImagePreview(null)
+                        setShowModal('status')
+                      }}
+                      className="px-5 py-2 bg-green-600 text-white text-sm font-semibold rounded-lg hover:bg-green-700 shadow-sm flex items-center"
+                    >
+                      <Check className="w-4 h-4 mr-1" />
+                      ปิดเคส
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => setShowModal(null)}
+                    className="px-4 py-2 border border-gray-300 rounded-lg shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
+                  >
+                    ปิด
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Accept Confirmation Modal */}
+            {showModal === 'accept' && selectedComplaint && (
+              <div className="space-y-4">
+                <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+                  <p className="text-amber-800 font-medium text-center">
+                    กรุณาตรวจสอบรายละเอียดก่อนยืนยันรับเรื่อง
+                  </p>
+                </div>
+                <div className="bg-gray-50 rounded-lg p-4 space-y-3">
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs font-medium text-gray-500">เลขที่คำร้อง</label>
+                      <p className="text-sm font-bold text-blue-600">{selectedComplaint.ticketNo}</p>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-500">วันที่แจ้ง</label>
+                      <p className="text-sm text-gray-900">{formatDate(selectedComplaint.createdAt)}</p>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-500">ชื่อผู้แจ้ง</label>
+                      <p className="text-sm text-gray-900">{selectedComplaint.name}</p>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-500">เบอร์โทร</label>
+                      <p className="text-sm text-gray-900">{selectedComplaint.phone || '-'}</p>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-500">ประเภท</label>
+                      <p className="text-sm text-gray-900">{selectedComplaint.type}</p>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-500">สถานที่</label>
+                      <p className="text-sm text-gray-900">{selectedComplaint.location}</p>
+                      {selectedComplaint.latitude && selectedComplaint.longitude && (
+                        <a
+                          href={`https://www.google.com/maps?q=${selectedComplaint.latitude},${selectedComplaint.longitude}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800"
+                        >
+                          <ExternalLink className="w-3 h-3" />
+                          เปิดแผนที่
+                        </a>
+                      )}
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-500">รายละเอียด</label>
+                    <p className="text-sm text-gray-900 whitespace-pre-wrap">{selectedComplaint.description}</p>
+                  </div>
+                  {selectedComplaint.images && Array.isArray(selectedComplaint.images) && selectedComplaint.images.length > 0 && (
+                    <div>
+                      <label className="block text-xs font-medium text-gray-500">รูปภาพประกอบ</label>
+                      <div className="mt-1 grid grid-cols-3 gap-2">
+                        {selectedComplaint.images.map((image: string, index: number) => (
+                          <img key={index} src={image} alt={`รูป ${index + 1}`} className="w-full h-24 object-cover rounded cursor-pointer" onClick={() => window.open(image, '_blank')} />
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+                <div className="flex justify-end space-x-3 pt-4 border-t">
+                  <button
+                    type="button"
+                    onClick={() => setShowModal(null)}
+                    className="px-4 py-2 border border-gray-300 rounded-lg shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
+                  >
+                    ยกเลิก
+                  </button>
+                  <button
+                    onClick={confirmAccept}
+                    className="px-6 py-2 bg-amber-500 text-white text-sm font-semibold rounded-lg hover:bg-amber-600 shadow-sm"
+                  >
+                    ยืนยันรับเรื่อง
+                  </button>
+                </div>
               </div>
             )}
 
@@ -951,19 +1188,6 @@ export default function ComplaintsPage() {
                       className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                       placeholder="กรอกเบอร์โทรศัพท์"
                     />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700">อีเมล</label>
-                    <input
-                      type="email"
-                      value={formData.email}
-                      onChange={(e) => handleInputChange('email', e.target.value)}
-                      maxLength={FIELD_LIMITS.COMPLAINT_EMAIL}
-                      className={`mt-1 block w-full px-3 py-2 border ${formErrors.email ? 'border-red-500' : 'border-gray-300'} rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500`}
-                      placeholder="กรอกอีเมล"
-                    />
-                    {formErrors.email && <p className="mt-1 text-sm text-red-600">{formErrors.email}</p>}
                   </div>
 
                   <div>

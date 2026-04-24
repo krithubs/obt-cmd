@@ -23,7 +23,7 @@ export default function AdminSidebar() {
             <Home className="w-5 h-5 text-white" />
           </div>
           <div>
-            <h2 className="text-white text-lg font-bold">อบต.โหล่งขอด</h2>
+            <h2 className="text-white text-lg font-bold">อบต. CODEMONDAY</h2>
             <p className="text-gray-400 text-xs">ระบบจัดการคำร้อง</p>
           </div>
         </div>
@@ -56,7 +56,7 @@ export default function AdminSidebar() {
           </div>
           <div className="flex-1 min-w-0">
             <p className="text-white text-sm font-medium truncate">Administrator</p>
-            <p className="text-gray-500 text-xs truncate">admin@longkhod.local</p>
+            <p className="text-gray-500 text-xs truncate">admin@codemonday.go.th</p>
           </div>
         </div>
         <Link href="/admin/login" className="flex items-center text-gray-500 hover:text-red-400 mt-3 text-sm transition-colors">

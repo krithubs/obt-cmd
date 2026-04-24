@@ -24,14 +24,19 @@ export default function AuditPage() {
   const [searchTerm, setSearchTerm] = useState('')
   const [loading, setLoading] = useState(true)
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set())
+  const [resourceFilter, setResourceFilter] = useState('ALL')
+  const [actionFilter, setActionFilter] = useState('ALL')
 
   useEffect(() => {
     fetchLogs()
-  }, [])
+  }, [resourceFilter, actionFilter])
 
   const fetchLogs = async () => {
     try {
-      const response = await fetch('/api/audit')
+      const params = new URLSearchParams()
+      if (resourceFilter !== 'ALL') params.set('resource', resourceFilter)
+      if (actionFilter !== 'ALL') params.set('action', actionFilter)
+      const response = await fetch(`/api/audit?${params.toString()}`)
       if (!response.ok) {
         throw new Error('Failed to fetch audit logs')
       }
@@ -71,6 +76,16 @@ export default function AuditPage() {
     return action
   }
 
+  const getResourceText = (resource: string) => {
+    switch (resource) {
+      case 'COMPLAINT': return 'คำร้อง'
+      case 'NEWS': return 'ประชาสัมพันธ์'
+      case 'USER': return 'ผู้ใช้'
+      case 'AUTH': return 'เข้าสู่ระบบ'
+      default: return resource
+    }
+  }
+
   const parseDetails = (details: string | undefined) => {
     if (!details) return null
     try {
@@ -97,10 +112,10 @@ export default function AuditPage() {
               <h1 className="text-3xl font-bold text-gray-900">บันทึกการใช้งาน</h1>
             </div>
 
-            {/* Search */}
+            {/* Search & Filters */}
             <div className="bg-white rounded-lg shadow p-6 mb-6">
-              <div className="max-w-md">
-                <div className="relative">
+              <div className="flex flex-wrap items-center gap-4">
+                <div className="relative flex-1 min-w-[200px]">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
                   <input
                     type="text"
@@ -109,6 +124,32 @@ export default function AuditPage() {
                     onChange={(e) => setSearchTerm(e.target.value)}
                     className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
+                </div>
+                <select
+                  value={resourceFilter}
+                  onChange={e => setResourceFilter(e.target.value)}
+                  className="px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                >
+                  <option value="ALL">ทุกประเภท</option>
+                  <option value="COMPLAINT">คำร้อง</option>
+                  <option value="NEWS">ประชาสัมพันธ์</option>
+                  <option value="USER">ผู้ใช้</option>
+                  <option value="AUTH">เข้าสู่ระบบ</option>
+                </select>
+                <select
+                  value={actionFilter}
+                  onChange={e => setActionFilter(e.target.value)}
+                  className="px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                >
+                  <option value="ALL">ทุกการกระทำ</option>
+                  <option value="CREATE">สร้าง</option>
+                  <option value="UPDATE">อัปเดต</option>
+                  <option value="DELETE">ลบ</option>
+                  <option value="LOGIN_SUCCESS">เข้าสู่ระบบสำเร็จ</option>
+                  <option value="LOGIN_FAILED">เข้าสู่ระบบล้มเหลว</option>
+                </select>
+                <div className="text-sm text-gray-500">
+                  ทั้งหมด {filteredLogs.length} รายการ
                 </div>
               </div>
             </div>
@@ -154,7 +195,7 @@ export default function AuditPage() {
                           </span>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                          {log.resource}
+                          {getResourceText(log.resource)}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                           {log.ipAddress || '-'}
