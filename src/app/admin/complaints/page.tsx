@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { ChevronLeft, FileText, HelpCircle, Upload, Send, MapPin, Camera, Phone, Mail, Map, Users, TrendingUp, AlertCircle, LogOut, X, Save, Image, Calendar, ChevronDown, FileDown, Search, Eye, Plus, Filter, Home, Check, ExternalLink } from 'lucide-react'
+import { ChevronLeft, FileText, HelpCircle, Upload, Send, MapPin, Camera, Phone, Mail, Map, Users, TrendingUp, AlertCircle, LogOut, X, Save, Image, Calendar, ChevronDown, FileDown, Search, Eye, Plus, Filter, Home, Check, ExternalLink, Trash2 } from 'lucide-react'
 import { generateComplaintsExcel } from '@/lib/excel-generator'
 import { PageLoading } from '@/components/ui'
 import { useToast } from '@/components/ui/Toast'
@@ -752,6 +752,13 @@ export default function ComplaintsPage() {
                               เสร็จสิ้น
                             </span>
                           )}
+                          <button
+                            onClick={() => handleDeleteComplaint(complaint.id)}
+                            className="text-red-600 hover:text-red-800 ml-1"
+                            title="ลบคำร้อง"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
                         </div>
                       </td>
                     </tr>
