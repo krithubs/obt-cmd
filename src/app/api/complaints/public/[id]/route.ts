@@ -28,6 +28,7 @@ export async function GET(
         notes: true,
         images: true,
         resolutionImages: true,
+        forwardedTo: true,
         createdAt: true,
         updatedAt: true,
       },

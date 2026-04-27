@@ -70,6 +70,7 @@ export async function PUT(
         ...(sanitized.notes !== undefined && { notes: sanitized.notes }),
         ...(sanitized.assignedTo !== undefined && { assignedTo: sanitized.assignedTo }),
         ...(sanitized.resolutionImages !== undefined && { resolutionImages: JSON.stringify(sanitized.resolutionImages) }),
+        ...(sanitized.forwardedTo !== undefined && { forwardedTo: sanitized.forwardedTo }),
         updatedAt: new Date()
       }
     })

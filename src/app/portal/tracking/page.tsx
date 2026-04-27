@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { Search, ChevronLeft, FileText, Users, MapPin, Clock, AlertCircle, CheckCircle, Home } from 'lucide-react'
+import { Search, ChevronLeft, FileText, Users, MapPin, Clock, AlertCircle, CheckCircle, Home, ArrowRightCircle } from 'lucide-react'
 import PortalNavbar from '@/components/PortalNavbar'
 import Footer from '@/components/Footer'
 import { PageLoading, ButtonSpinner } from '@/components/ui'
@@ -14,11 +14,12 @@ interface Complaint {
   type: string
   description: string
   location: string
-  status: 'PENDING' | 'IN_PROGRESS' | 'RESOLVED'
+  status: 'PENDING' | 'IN_PROGRESS' | 'RESOLVED' | 'FORWARDED'
   createdAt: string
   updatedAt?: string
   images?: string[]
   resolutionImages?: string[]
+  forwardedTo?: string
 }
 
 export default function TrackingPage() {
@@ -60,6 +61,7 @@ export default function TrackingPage() {
       case 'PENDING': return 'bg-yellow-100 text-yellow-800 border-yellow-200'
       case 'IN_PROGRESS': return 'bg-blue-100 text-blue-800 border-blue-200'
       case 'RESOLVED': return 'bg-green-100 text-green-800 border-green-200'
+      case 'FORWARDED': return 'bg-indigo-100 text-indigo-800 border-indigo-200'
       default: return 'bg-gray-100 text-gray-800 border-gray-200'
     }
   }
@@ -69,6 +71,7 @@ export default function TrackingPage() {
       case 'PENDING': return 'รอดำเนินการ'
       case 'IN_PROGRESS': return 'ดำเนินการ'
       case 'RESOLVED': return 'ดำเนินการแล้ว'
+      case 'FORWARDED': return 'ส่งต่อ'
       default: return status
     }
   }
@@ -105,6 +108,7 @@ export default function TrackingPage() {
       case 'PENDING': return <Clock className="w-4 h-4" />
       case 'IN_PROGRESS': return <AlertCircle className="w-4 h-4" />
       case 'RESOLVED': return <CheckCircle className="w-4 h-4" />
+      case 'FORWARDED': return <ArrowRightCircle className="w-4 h-4" />
       default: return <Clock className="w-4 h-4" />
     }
   }
@@ -398,6 +402,14 @@ export default function TrackingPage() {
                         {afterImages.length > 0 ? (
                           <div className="h-28 rounded-lg overflow-hidden bg-gray-200">
                             <img src={afterImages[0]} alt="After" className="w-full h-full object-cover" />
+                          </div>
+                        ) : complaint.status === 'FORWARDED' ? (
+                          <div className="h-28 rounded-lg bg-indigo-50 border border-indigo-200 flex flex-col items-center justify-center px-2 text-center">
+                            <ArrowRightCircle className="w-4 h-4 text-indigo-600 mb-1" />
+                            <span className="text-xs text-indigo-700 font-medium">ส่งต่อให้หน่วยงาน</span>
+                            {complaint.forwardedTo && (
+                              <span className="text-[10px] text-indigo-500 truncate w-full">{complaint.forwardedTo}</span>
+                            )}
                           </div>
                         ) : complaint.status === 'IN_PROGRESS' ? (
                           <div className="h-28 rounded-lg bg-blue-50 border border-blue-200 flex flex-col items-center justify-center">

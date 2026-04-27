@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { ChevronLeft, FileText, HelpCircle, Upload, Send, MapPin, Camera, Phone, Mail, Map, Users, TrendingUp, AlertCircle, LogOut, X, Save, Image, Calendar, ChevronDown, FileDown, Search, Eye, Plus, Filter, Home, Check, ExternalLink, Trash2 } from 'lucide-react'
+import { ChevronLeft, FileText, HelpCircle, Upload, Send, MapPin, Camera, Phone, Mail, Map, Users, TrendingUp, AlertCircle, LogOut, X, Save, Image, Calendar, ChevronDown, FileDown, Search, Eye, Plus, Filter, Home, Check, ExternalLink, Trash2, ArrowRightCircle } from 'lucide-react'
 import { generateComplaintsExcel } from '@/lib/excel-generator'
 import { PageLoading } from '@/components/ui'
 import { useToast } from '@/components/ui/Toast'
@@ -20,12 +20,14 @@ interface Complaint {
   location: string
   latitude?: number | null
   longitude?: number | null
-  status: 'PENDING' | 'IN_PROGRESS' | 'RESOLVED'
+  status: 'PENDING' | 'IN_PROGRESS' | 'RESOLVED' | 'FORWARDED'
   createdAt: string
   updatedAt?: string
   internalNote?: string
+  notes?: string
   images?: string[]
   phone?: string
+  forwardedTo?: string
 }
 
 interface ComplaintFormData {
@@ -33,7 +35,7 @@ interface ComplaintFormData {
   type: string
   description: string
   location: string
-  status: 'PENDING' | 'IN_PROGRESS' | 'RESOLVED'
+  status: 'PENDING' | 'IN_PROGRESS' | 'RESOLVED' | 'FORWARDED'
   internalNote: string
   phone: string
   images: string[]
@@ -51,7 +53,7 @@ export default function ComplaintsPage() {
   const [currentPage, setCurrentPage] = useState(1)
   const [itemsPerPage] = useState(10)
   const [loading, setLoading] = useState(true)
-  const [showModal, setShowModal] = useState<'add' | 'view' | 'status' | 'accept' | null>(null)
+  const [showModal, setShowModal] = useState<'add' | 'view' | 'status' | 'accept' | 'forward' | null>(null)
   const [selectedComplaint, setSelectedComplaint] = useState<Complaint | null>(null)
   const [formData, setFormData] = useState<ComplaintFormData>({
     name: '',
@@ -65,9 +67,10 @@ export default function ComplaintsPage() {
   })
   const [formErrors, setFormErrors] = useState<Partial<ComplaintFormData>>({})
   const [statusUpdateData, setStatusUpdateData] = useState({
-    status: 'PENDING' as 'PENDING' | 'IN_PROGRESS' | 'RESOLVED',
+    status: 'PENDING' as 'PENDING' | 'IN_PROGRESS' | 'RESOLVED' | 'FORWARDED',
     internalNote: ''
   })
+  const [forwardData, setForwardData] = useState({ forwardedTo: '', reason: '' })
   const [afterImageFile, setAfterImageFile] = useState<File | null>(null)
   const [afterImagePreview, setAfterImagePreview] = useState<string | null>(null)
 
@@ -109,6 +112,7 @@ export default function ComplaintsPage() {
       case 'PENDING': return 'bg-yellow-100 text-yellow-800'
       case 'IN_PROGRESS': return 'bg-blue-100 text-blue-800'
       case 'RESOLVED': return 'bg-green-100 text-green-800'
+      case 'FORWARDED': return 'bg-indigo-100 text-indigo-800'
       default: return 'bg-gray-100 text-gray-800'
     }
   }
@@ -118,6 +122,7 @@ export default function ComplaintsPage() {
       case 'PENDING': return 'รอรับเรื่อง'
       case 'IN_PROGRESS': return 'กำลังดำเนินการ'
       case 'RESOLVED': return 'เสร็จสิ้น'
+      case 'FORWARDED': return 'ส่งต่อ'
       default: return status
     }
   }
@@ -209,6 +214,44 @@ export default function ComplaintsPage() {
     setAfterImageFile(null)
     setAfterImagePreview(null)
     setShowModal('status')
+  }
+
+  const handleForwardComplaint = (complaint: Complaint) => {
+    setSelectedComplaint(complaint)
+    setForwardData({ forwardedTo: complaint.forwardedTo || '', reason: '' })
+    setShowModal('forward')
+  }
+
+  const handleSubmitForward = async () => {
+    if (!selectedComplaint) return
+    if (!forwardData.forwardedTo.trim()) {
+      showToast('error', 'กรุณาระบุหน่วยงานปลายทาง')
+      return
+    }
+    try {
+      const response = await fetch(`/api/complaints/${selectedComplaint.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          status: 'FORWARDED',
+          forwardedTo: forwardData.forwardedTo.trim(),
+          notes: forwardData.reason.trim()
+        })
+      })
+      if (response.ok) {
+        const raw = await response.json()
+        const updated = { ...raw, images: Array.isArray(raw.images) ? raw.images : (() => { try { return JSON.parse(raw.images) } catch { return [] } })() }
+        setComplaints(prev => prev.map(c => c.id === selectedComplaint.id ? updated : c).sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()))
+        showToast('success', 'ส่งต่อเคสสำเร็จ', `ส่งต่อให้ ${forwardData.forwardedTo}`)
+        setShowModal(null)
+      } else {
+        const errorData = await response.json()
+        showToast('error', 'ไม่สามารถส่งต่อ', errorData.error)
+      }
+    } catch (error) {
+      console.error('Error forwarding complaint:', error)
+      showToast('error', 'เกิดข้อผิดพลาด')
+    }
   }
 
   const handleViewComplaint = (complaint: Complaint) => {
@@ -451,7 +494,7 @@ export default function ComplaintsPage() {
       console.log('Excel download clicked, complaints:', filteredComplaints.length);
       console.log('Date range:', { from: dateFrom, to: dateTo });
       
-      const excelBytes = await generateComplaintsExcel(filteredComplaints, {
+      const excelBytes = await generateComplaintsExcel(filteredComplaints as any, {
         from: dateFrom,
         to: dateTo
       })
@@ -688,24 +731,36 @@ export default function ComplaintsPage() {
                           <div className={`w-4 h-0.5 ${complaint.status !== 'PENDING' ? 'bg-green-400' : 'bg-gray-200'}`} />
                           <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs border-2 ${
                             complaint.status === 'IN_PROGRESS' ? 'bg-blue-100 border-blue-400 text-blue-600' :
-                            complaint.status === 'RESOLVED' ? 'bg-green-500 border-green-500 text-white' :
+                            (complaint.status === 'RESOLVED' || complaint.status === 'FORWARDED') ? 'bg-green-500 border-green-500 text-white' :
                             'bg-gray-50 border-gray-200 text-gray-400'
                           }`}>
-                            {complaint.status === 'RESOLVED' ? <Check className="w-3 h-3" /> : '2'}
+                            {(complaint.status === 'RESOLVED' || complaint.status === 'FORWARDED') ? <Check className="w-3 h-3" /> : '2'}
                           </div>
-                          <div className={`w-4 h-0.5 ${complaint.status === 'RESOLVED' ? 'bg-green-400' : 'bg-gray-200'}`} />
+                          <div className={`w-4 h-0.5 ${
+                            complaint.status === 'RESOLVED' ? 'bg-green-400' :
+                            complaint.status === 'FORWARDED' ? 'bg-indigo-400' :
+                            'bg-gray-200'
+                          }`} />
                           <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs border-2 ${
                             complaint.status === 'RESOLVED' ? 'bg-green-500 border-green-500 text-white' :
+                            complaint.status === 'FORWARDED' ? 'bg-indigo-500 border-indigo-500 text-white' :
                             'bg-gray-50 border-gray-200 text-gray-400'
                           }`}>
-                            {complaint.status === 'RESOLVED' ? <Check className="w-3 h-3" /> : '3'}
+                            {complaint.status === 'RESOLVED' ? <Check className="w-3 h-3" /> :
+                             complaint.status === 'FORWARDED' ? <ArrowRightCircle className="w-3 h-3" /> :
+                             '3'}
                           </div>
                         </div>
                         <p className={`mt-1 text-xs font-medium ${
                           complaint.status === 'PENDING' ? 'text-yellow-600' :
-                          complaint.status === 'IN_PROGRESS' ? 'text-blue-600' : 'text-green-600'
+                          complaint.status === 'IN_PROGRESS' ? 'text-blue-600' :
+                          complaint.status === 'FORWARDED' ? 'text-indigo-600' :
+                          'text-green-600'
                         }`}>
                           {getStatusText(complaint.status)}
+                          {complaint.status === 'FORWARDED' && complaint.forwardedTo && (
+                            <span className="block text-[10px] font-normal text-indigo-500">→ {complaint.forwardedTo}</span>
+                          )}
                         </p>
                       </td>
                       <td className="px-3 py-3 text-sm text-gray-900">
@@ -739,17 +794,36 @@ export default function ComplaintsPage() {
                             </button>
                           )}
                           {complaint.status === 'IN_PROGRESS' && (
-                            <button
-                              onClick={() => handleEditComplaint(complaint)}
-                              className="px-3 py-1.5 bg-green-600 text-white text-xs font-semibold rounded-full hover:bg-green-700 shadow-sm"
-                            >
-                              ปิดเคส
-                            </button>
+                            <>
+                              <button
+                                onClick={() => handleEditComplaint(complaint)}
+                                className="px-3 py-1.5 bg-green-600 text-white text-xs font-semibold rounded-full hover:bg-green-700 shadow-sm"
+                              >
+                                ปิดเคส
+                              </button>
+                              <button
+                                onClick={() => handleForwardComplaint(complaint)}
+                                className="px-3 py-1.5 bg-indigo-600 text-white text-xs font-semibold rounded-full hover:bg-indigo-700 shadow-sm flex items-center"
+                                title="ส่งต่อให้หน่วยงานที่เกี่ยวข้อง"
+                              >
+                                <ArrowRightCircle className="w-3 h-3 mr-1" />
+                                ส่งต่อ
+                              </button>
+                            </>
                           )}
                           {complaint.status === 'RESOLVED' && (
                             <span className="text-xs text-green-600 font-medium flex items-center">
                               <Check className="w-3 h-3 mr-1" />
                               เสร็จสิ้น
+                            </span>
+                          )}
+                          {complaint.status === 'FORWARDED' && (
+                            <span
+                              className="text-xs text-indigo-600 font-medium flex items-center"
+                              title={complaint.forwardedTo ? `ส่งต่อให้ ${complaint.forwardedTo}` : 'ส่งต่อ'}
+                            >
+                              <ArrowRightCircle className="w-3 h-3 mr-1" />
+                              ส่งต่อ
                             </span>
                           )}
                           <button
@@ -848,7 +922,7 @@ export default function ComplaintsPage() {
           <div className="relative top-20 mx-auto p-5 border w-full max-w-4xl shadow-lg rounded-lg bg-white max-h-[90vh] overflow-y-auto">
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-lg font-bold text-gray-900">
-                {showModal === 'add' ? 'เพิ่มคำร้องใหม่' : showModal === 'status' ? 'ปิดเคส' : showModal === 'view' ? 'รายละเอียดคำร้อง' : showModal === 'accept' ? 'ยืนยันรับเรื่อง' : ''}
+                {showModal === 'add' ? 'เพิ่มคำร้องใหม่' : showModal === 'status' ? 'ปิดเคส' : showModal === 'view' ? 'รายละเอียดคำร้อง' : showModal === 'accept' ? 'ยืนยันรับเรื่อง' : showModal === 'forward' ? 'ส่งต่อเคส' : ''}
               </h3>
               <button
                 onClick={() => setShowModal(null)}
@@ -1163,6 +1237,71 @@ export default function ComplaintsPage() {
                     className="px-6 py-2 bg-amber-500 text-white text-sm font-semibold rounded-lg hover:bg-amber-600 shadow-sm"
                   >
                     ยืนยันรับเรื่อง
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Forward Modal */}
+            {showModal === 'forward' && selectedComplaint && (
+              <div className="space-y-4">
+                <div className="bg-indigo-50 border border-indigo-200 rounded-lg p-4 flex items-start">
+                  <ArrowRightCircle className="w-5 h-5 text-indigo-600 mr-2 mt-0.5 flex-shrink-0" />
+                  <div className="text-sm text-indigo-800">
+                    <p className="font-semibold mb-1">ส่งต่อให้หน่วยงานที่เกี่ยวข้อง</p>
+                    <p className="text-xs text-indigo-700">
+                      เคสนี้จะถูกปิดในระบบของเรา และส่งต่อไปให้หน่วยงานปลายทางเป็นผู้ดำเนินการ
+                      ผู้แจ้งจะเห็นว่าเคสนี้ส่งต่อ ไม่ใช่ปิดเอง
+                    </p>
+                  </div>
+                </div>
+
+                <div className="bg-gray-50 rounded-lg p-3 text-sm space-y-1">
+                  <div><span className="text-gray-500">เลขที่:</span> <span className="font-medium text-blue-600">{selectedComplaint.ticketNo}</span></div>
+                  <div><span className="text-gray-500">ประเภท:</span> {selectedComplaint.type}</div>
+                  <div><span className="text-gray-500">รายละเอียด:</span> {selectedComplaint.description}</div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    หน่วยงานปลายทาง <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={forwardData.forwardedTo}
+                    onChange={(e) => setForwardData(prev => ({ ...prev, forwardedTo: e.target.value }))}
+                    maxLength={200}
+                    placeholder="เช่น การไฟฟ้าส่วนภูมิภาค, แขวงทางหลวง, การประปาส่วนภูมิภาค"
+                    className="block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">เหตุผล / รายละเอียดการส่งต่อ</label>
+                  <textarea
+                    value={forwardData.reason}
+                    onChange={(e) => setForwardData(prev => ({ ...prev, reason: e.target.value }))}
+                    rows={3}
+                    maxLength={FIELD_LIMITS.COMPLAINT_INTERNAL_NOTE}
+                    placeholder="เช่น ปัญหาอยู่นอกเขตความรับผิดชอบ อบต. จึงประสานต่อให้หน่วยงานเฉพาะ..."
+                    className="block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                  />
+                </div>
+
+                <div className="flex justify-end space-x-3 pt-4 border-t">
+                  <button
+                    type="button"
+                    onClick={() => setShowModal(null)}
+                    className="px-4 py-2 border border-gray-300 rounded-lg shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
+                  >
+                    ยกเลิก
+                  </button>
+                  <button
+                    onClick={handleSubmitForward}
+                    className="px-5 py-2 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 flex items-center"
+                  >
+                    <ArrowRightCircle className="w-4 h-4 mr-2" />
+                    ยืนยันส่งต่อ
                   </button>
                 </div>
               </div>
