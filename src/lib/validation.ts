@@ -20,7 +20,7 @@ export function sanitize(input: unknown): string {
 // ===== VALIDATION =====
 
 /** Valid complaint statuses */
-export const VALID_STATUSES = ['PENDING', 'IN_PROGRESS', 'RESOLVED', 'FORWARDED'] as const
+export const VALID_STATUSES = ['PENDING', 'IN_PROGRESS', 'RESOLVED'] as const
 export type ComplaintStatus = typeof VALID_STATUSES[number]
 
 /** Valid complaint types */
@@ -156,7 +156,6 @@ export interface UpdateValidationResult {
     notes?: string
     assignedTo?: string
     resolutionImages?: string[]
-    forwardedTo?: string
   }
 }
 
@@ -196,15 +195,6 @@ export function validateComplaintUpdate(data: Record<string, unknown>): UpdateVa
       sanitized.resolutionImages = data.resolutionImages
         .filter((img): img is string => typeof img === 'string')
         .slice(0, 5)
-    }
-  }
-
-  if (data.forwardedTo !== undefined) {
-    const forwardedTo = sanitize(data.forwardedTo)
-    if (forwardedTo.length > 200) {
-      errors.push('ชื่อหน่วยงานปลายทางต้องไม่เกิน 200 ตัวอักษร')
-    } else {
-      sanitized.forwardedTo = forwardedTo
     }
   }
 

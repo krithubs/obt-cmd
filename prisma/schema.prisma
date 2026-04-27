@@ -35,7 +35,6 @@ model Complaint {
   notes       String?
   images      String
   resolutionImages String @default("[]")
-  forwardedTo String?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   assignedTo  String?

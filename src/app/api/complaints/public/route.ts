@@ -21,7 +21,6 @@ export async function GET() {
         createdAt: true,
         images: true,
         resolutionImages: true,
-        forwardedTo: true,
         // Intentionally exclude: name, phone, email, notes, assignedTo
       }
     })

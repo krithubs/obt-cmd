@@ -5,14 +5,12 @@ import Link from 'next/link'
 import { useParams, useRouter } from 'next/navigation'
 import {
   ArrowLeft,
-  ArrowRightCircle,
   Check,
   Circle,
   Clock,
   MapPin,
   AlertCircle,
   XCircle,
-  Send,
 } from 'lucide-react'
 
 interface Complaint {
@@ -21,9 +19,8 @@ interface Complaint {
   type: string
   description: string
   location?: string | null
-  status: 'PENDING' | 'IN_PROGRESS' | 'RESOLVED' | 'REJECTED' | 'FORWARDED'
+  status: 'PENDING' | 'IN_PROGRESS' | 'RESOLVED' | 'REJECTED'
   notes?: string | null
-  forwardedTo?: string | null
   images: string[]
   resolutionImages: string[]
   createdAt: string
@@ -45,7 +42,6 @@ function getCurrentStepIndex(status: Complaint['status']): number {
     case 'IN_PROGRESS':
       return 2 // accepted, waiting to be closed
     case 'RESOLVED':
-    case 'FORWARDED':
       return STEPS.length // all done
     case 'REJECTED':
       return 1
@@ -86,7 +82,6 @@ const STATUS_LABEL: Record<Complaint['status'], string> = {
   IN_PROGRESS: 'กำลังดำเนินการ',
   RESOLVED: 'แก้ไขเรียบร้อย',
   REJECTED: 'ปฏิเสธคำร้อง',
-  FORWARDED: 'ส่งต่อให้หน่วยงานที่เกี่ยวข้อง',
 }
 
 export default function ComplaintDetailPage() {
@@ -145,7 +140,6 @@ export default function ComplaintDetailPage() {
   }
 
   const isRejected = complaint.status === 'REJECTED'
-  const isForwarded = complaint.status === 'FORWARDED'
   const currentIdx = getCurrentStepIndex(complaint.status)
   const totalSteps = STEPS.length
 
@@ -183,7 +177,7 @@ export default function ComplaintDetailPage() {
         {/* Hero card */}
         <div
           className={`rounded-2xl p-5 text-white shadow-md ${
-            isRejected ? 'bg-red-600' : isForwarded ? 'bg-indigo-600' : 'bg-blue-700'
+            isRejected ? 'bg-red-600' : 'bg-blue-700'
           }`}
         >
           <div className="flex items-center justify-between gap-3 mb-1">
@@ -245,18 +239,14 @@ export default function ComplaintDetailPage() {
               const date = stepDate(idx)
               const isLast = idx === STEPS.length - 1
               const between = !isLast ? betweenLabel(idx) : ''
-              const isForwardedFinal = isLast && isForwarded
 
-              const dotClasses = isForwardedFinal
-                ? 'bg-indigo-500 border-indigo-500 text-white'
-                : state === 'done'
-                ? 'bg-green-500 border-green-500 text-white'
-                : 'bg-gray-100 border-gray-300 text-gray-300'
+              const dotClasses =
+                state === 'done'
+                  ? 'bg-green-500 border-green-500 text-white'
+                  : 'bg-gray-100 border-gray-300 text-gray-300'
 
               const lineClasses =
                 state === 'done' ? 'bg-green-500' : 'bg-gray-200'
-
-              const stepTitle = isForwardedFinal ? 'ส่งต่อให้หน่วยงาน' : step.title
 
               return (
                 <li key={step.key} className="pl-10 pb-6 relative">
@@ -271,23 +261,15 @@ export default function ComplaintDetailPage() {
                   <span
                     className={`absolute left-0 top-0 w-6 h-6 rounded-full border-2 flex items-center justify-center ${dotClasses}`}
                   >
-                    {isForwardedFinal ? (
-                      <ArrowRightCircle className="w-3.5 h-3.5" />
-                    ) : state === 'done' ? (
-                      <Check className="w-3.5 h-3.5" />
-                    ) : null}
+                    {state === 'done' ? <Check className="w-3.5 h-3.5" /> : null}
                   </span>
 
                   <div
                     className={`font-semibold ${
-                      isForwardedFinal
-                        ? 'text-indigo-700'
-                        : state === 'pending'
-                        ? 'text-gray-400'
-                        : 'text-gray-900'
+                      state === 'pending' ? 'text-gray-400' : 'text-gray-900'
                     }`}
                   >
-                    {stepTitle}
+                    {step.title}
                   </div>
                   <div
                     className={`text-sm mt-0.5 ${
@@ -334,35 +316,6 @@ export default function ComplaintDetailPage() {
                 {complaint.notes && (
                   <p className="text-sm text-red-700 mt-1">{complaint.notes}</p>
                 )}
-              </div>
-            </div>
-          )}
-
-          {isForwarded && (
-            <div className="mt-2 p-4 bg-indigo-50 border border-indigo-200 rounded-xl">
-              <div className="flex items-start">
-                <Send className="w-5 h-5 text-indigo-600 mr-2 mt-0.5 flex-shrink-0" />
-                <div className="flex-1">
-                  <div className="font-semibold text-indigo-900">
-                    เคสนี้ถูกส่งต่อให้หน่วยงานที่เกี่ยวข้อง
-                  </div>
-                  <p className="text-xs text-indigo-700 mt-0.5">
-                    อบต. ไม่ได้เป็นผู้ดำเนินการแก้ไข แต่ได้ประสานงานต่อให้หน่วยงานที่รับผิดชอบโดยตรง
-                  </p>
-                  {complaint.forwardedTo && (
-                    <div className="mt-3 inline-flex items-center bg-white border border-indigo-200 rounded-lg px-3 py-2">
-                      <span className="text-xs text-indigo-600 mr-2">ส่งต่อให้:</span>
-                      <span className="text-sm font-semibold text-indigo-900">
-                        {complaint.forwardedTo}
-                      </span>
-                    </div>
-                  )}
-                  {complaint.notes && (
-                    <p className="text-sm text-indigo-800 mt-2 italic">
-                      &ldquo;{complaint.notes}&rdquo;
-                    </p>
-                  )}
-                </div>
               </div>
             </div>
           )}
