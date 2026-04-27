@@ -331,6 +331,15 @@ export default function TrackingPage() {
                       <p>อัปเดตล่าสุด: {searchResult.updatedAt}</p>
                     </div>
                   )}
+
+                  <div className="pt-2">
+                    <Link
+                      href={`/portal/complaints/${searchResult.id}`}
+                      className="inline-flex items-center px-5 py-2.5 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors"
+                    >
+                      ดูรายละเอียดและไทม์ไลน์ →
+                    </Link>
+                  </div>
                 </div>
               </div>
             </div>
@@ -354,7 +363,11 @@ export default function TrackingPage() {
                   const afterImages = (() => { try { return Array.isArray(complaint.resolutionImages) ? complaint.resolutionImages : JSON.parse(complaint.resolutionImages || '[]') } catch { return [] } })()
 
                   return (
-                  <div key={complaint.id} className="bg-gray-50 rounded-xl overflow-hidden hover:shadow-md transition-all border border-gray-200">
+                  <Link
+                    key={complaint.id}
+                    href={`/portal/complaints/${complaint.id}`}
+                    className="block bg-gray-50 rounded-xl overflow-hidden hover:shadow-md hover:bg-white transition-all border border-gray-200 cursor-pointer"
+                  >
                     {/* Header */}
                     <div className="flex justify-between items-start px-4 pt-4 pb-2">
                       <span className="text-sm font-bold text-blue-600 bg-blue-50 px-2 py-1 rounded-full whitespace-nowrap">
@@ -418,12 +431,15 @@ export default function TrackingPage() {
                     </div>
 
                     {/* Footer */}
-                    <div className="px-4 py-2 border-t border-gray-200">
+                    <div className="px-4 py-2 border-t border-gray-200 flex items-center justify-between">
                       <span className="text-xs text-gray-500">
                         {getRelativeTime(complaint.createdAt)}
                       </span>
+                      <span className="text-xs font-medium text-blue-600">
+                        ดูรายละเอียด →
+                      </span>
                     </div>
-                  </div>
+                  </Link>
                   )
                 })}
               </div>
