@@ -145,9 +145,7 @@ export default function ComplaintDetailPage() {
 
   const stateOf = (idx: number): StepState => {
     if (isRejected) return idx === 0 ? 'done' : 'pending'
-    if (idx < currentIdx) return 'done'
-    if (idx === currentIdx) return 'current'
-    return 'pending'
+    return idx < currentIdx ? 'done' : 'pending'
   }
 
   // Per-step timestamps (best-effort given the schema)
@@ -157,10 +155,11 @@ export default function ComplaintDetailPage() {
     return null
   }
 
-  // Status text shown for the current step instead of a date
-  const currentStepLabel = (): string => {
-    if (complaint.status === 'PENDING') return 'อยู่ระหว่างเจ้าหน้าที่ตรวจสอบ'
-    if (complaint.status === 'IN_PROGRESS') return 'อยู่ระหว่างดำเนินการ'
+  // In-between status label between two steps (after step `idx`)
+  const betweenLabel = (idx: number): string => {
+    if (isRejected) return ''
+    if (idx === 0 && complaint.status === 'PENDING') return 'รอเจ้าหน้าที่ตรวจสอบ'
+    if (idx === 1 && complaint.status === 'IN_PROGRESS') return 'อยู่ระหว่างดำเนินการ'
     return ''
   }
 
@@ -183,7 +182,7 @@ export default function ComplaintDetailPage() {
         >
           <div className="text-xs/relaxed opacity-90 mb-1">
             {STATUS_LABEL[complaint.status]}
-            {!isRejected && ` · ขั้นที่ ${Math.min(currentIdx + (currentIdx < totalSteps ? 1 : 0), totalSteps)}/${totalSteps}`}
+            {!isRejected && ` · ขั้นที่ ${currentIdx}/${totalSteps}`}
           </div>
           <h1 className="text-xl font-bold leading-snug mb-3">
             {complaint.type}
@@ -234,18 +233,15 @@ export default function ComplaintDetailPage() {
               const state = stateOf(idx)
               const date = stepDate(idx)
               const isLast = idx === STEPS.length - 1
+              const between = !isLast ? betweenLabel(idx) : ''
 
               const dotClasses =
                 state === 'done'
                   ? 'bg-green-500 border-green-500 text-white'
-                  : state === 'current'
-                  ? 'bg-white border-blue-600 text-blue-600 ring-4 ring-blue-100'
                   : 'bg-gray-100 border-gray-300 text-gray-300'
 
               const lineClasses =
-                state === 'pending'
-                  ? 'bg-gray-200'
-                  : 'bg-green-500'
+                state === 'done' ? 'bg-green-500' : 'bg-gray-200'
 
               return (
                 <li key={step.key} className="pl-10 pb-6 relative">
@@ -260,11 +256,7 @@ export default function ComplaintDetailPage() {
                   <span
                     className={`absolute left-0 top-0 w-6 h-6 rounded-full border-2 flex items-center justify-center ${dotClasses}`}
                   >
-                    {state === 'done' ? (
-                      <Check className="w-3.5 h-3.5" />
-                    ) : state === 'current' ? (
-                      <Circle className="w-2.5 h-2.5 fill-current" />
-                    ) : null}
+                    {state === 'done' ? <Check className="w-3.5 h-3.5" /> : null}
                   </span>
 
                   <div
@@ -276,30 +268,34 @@ export default function ComplaintDetailPage() {
                   </div>
                   <div
                     className={`text-sm mt-0.5 ${
-                      state === 'current'
-                        ? 'text-blue-600 font-medium'
-                        : state === 'pending'
-                        ? 'text-gray-400'
-                        : 'text-gray-600'
+                      state === 'pending' ? 'text-gray-400' : 'text-gray-600'
                     }`}
                   >
-                    {state === 'current'
-                      ? currentStepLabel() || 'รอดำเนินการ'
-                      : date
-                      ? formatThaiShort(date)
-                      : '—'}
+                    {date ? formatThaiShort(date) : '—'}
                   </div>
                   <div
                     className={`text-sm ${
                       state === 'pending' ? 'text-gray-300' : 'text-gray-500'
                     }`}
                   >
-                    {state === 'pending' || state === 'current' ? '—' : step.actor || '—'}
+                    {state === 'pending' ? '—' : step.actor || '—'}
                   </div>
 
-                  {state === 'current' && complaint.notes && (
-                    <div className="mt-2 inline-block bg-blue-50 text-blue-800 text-sm rounded-lg px-3 py-2 border border-blue-100">
-                      &ldquo;{complaint.notes}&rdquo;
+                  {between && (
+                    <div className="mt-3 ml-[-2.5rem] pl-10 relative">
+                      <span
+                        className="absolute left-3 top-1/2 w-2 h-2 rounded-full bg-blue-500 ring-4 ring-blue-100 -translate-x-1/2 -translate-y-1/2 animate-pulse"
+                        aria-hidden="true"
+                      />
+                      <div className="inline-flex items-center bg-blue-50 text-blue-700 text-sm font-medium rounded-full px-3 py-1.5 border border-blue-100">
+                        <Circle className="w-2 h-2 mr-2 fill-current" />
+                        {between}
+                      </div>
+                      {complaint.notes && (
+                        <div className="mt-2 inline-block bg-blue-50 text-blue-800 text-sm rounded-lg px-3 py-2 border border-blue-100">
+                          &ldquo;{complaint.notes}&rdquo;
+                        </div>
+                      )}
                     </div>
                   )}
                 </li>
