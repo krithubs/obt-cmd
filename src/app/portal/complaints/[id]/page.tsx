@@ -164,7 +164,7 @@ export default function ComplaintDetailPage() {
     <div className="min-h-screen bg-gray-50 pb-12">
       <div className="max-w-2xl mx-auto px-4 pt-6">
         <Link
-          href="/portal/complaints"
+          href="/portal/tracking"
           className="inline-flex items-center text-sm text-gray-600 hover:text-gray-900 mb-4"
         >
           <ArrowLeft className="w-4 h-4 mr-1" />
