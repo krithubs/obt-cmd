@@ -180,9 +180,14 @@ export default function ComplaintDetailPage() {
             isRejected ? 'bg-red-600' : 'bg-blue-700'
           }`}
         >
-          <div className="text-xs/relaxed opacity-90 mb-1">
-            {STATUS_LABEL[complaint.status]}
-            {!isRejected && ` · ขั้นที่ ${currentIdx}/${totalSteps}`}
+          <div className="flex items-center justify-between gap-3 mb-1">
+            <div className="text-xs/relaxed opacity-90">
+              {STATUS_LABEL[complaint.status]}
+              {!isRejected && ` · ขั้นที่ ${currentIdx}/${totalSteps}`}
+            </div>
+            <span className="font-mono text-xs bg-white/15 rounded-full px-2.5 py-1">
+              {complaint.ticketNo}
+            </span>
           </div>
           <h1 className="text-xl font-bold leading-snug mb-3">
             {complaint.type}
@@ -367,9 +372,6 @@ export default function ComplaintDetailPage() {
           </div>
         )}
 
-        <div className="mt-5 text-center text-xs text-gray-400 font-mono">
-          เลขที่คำร้อง: {complaint.ticketNo}
-        </div>
       </div>
     </div>
   )
