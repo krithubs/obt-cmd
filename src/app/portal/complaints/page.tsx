@@ -1,7 +1,8 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Search, Filter, Calendar, MapPin, User, Phone, CheckCircle, Clock, AlertCircle, Camera, Eye, FileText } from 'lucide-react'
+import Link from 'next/link'
+import { Search, Calendar, MapPin, User, Phone, CheckCircle, Clock, AlertCircle, Eye, FileText } from 'lucide-react'
 import { useToast } from '@/components/ui/Toast'
 
 interface Complaint {
@@ -50,9 +51,6 @@ export default function ComplaintListPage() {
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState('')
   const [typeFilter, setTypeFilter] = useState('')
-  const [selectedComplaint, setSelectedComplaint] = useState<Complaint | null>(null)
-  const [showDetailModal, setShowDetailModal] = useState(false)
-
   useEffect(() => {
     fetchComplaints()
   }, [])
@@ -108,11 +106,6 @@ export default function ComplaintListPage() {
     
     return matchesSearch && matchesStatus && matchesType
   })
-
-  const openDetailModal = (complaint: Complaint) => {
-    setSelectedComplaint(complaint)
-    setShowDetailModal(true)
-  }
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('th-TH', {
@@ -227,12 +220,13 @@ export default function ComplaintListPage() {
                           {complaint.description}
                         </p>
                       </div>
-                      <button
-                        onClick={() => openDetailModal(complaint)}
+                      <Link
+                        href={`/portal/complaints/${complaint.id}`}
                         className="ml-4 p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                        aria-label="ดูรายละเอียด"
                       >
                         <Eye className="w-5 h-5" />
-                      </button>
+                      </Link>
                     </div>
 
                     {/* Details */}
@@ -343,150 +337,6 @@ export default function ComplaintListPage() {
         </div>
       </div>
 
-      {/* Detail Modal */}
-      {showDetailModal && selectedComplaint && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="sticky top-0 bg-white border-b p-6">
-              <div className="flex justify-between items-center">
-                <h2 className="text-2xl font-bold text-gray-900">
-                  รายละเอียดคำร้อง {selectedComplaint.ticketNo}
-                </h2>
-                <button
-                  onClick={() => setShowDetailModal(false)}
-                  className="text-gray-400 hover:text-gray-600"
-                >
-                  <AlertCircle className="w-6 h-6" />
-                </button>
-              </div>
-            </div>
-
-            <div className="p-6">
-              {/* Complaint Info */}
-              <div className="space-y-6">
-                <div>
-                  <h3 className="text-lg font-semibold text-gray-900 mb-4">ข้อมูลคำร้อง</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <label className="text-sm font-medium text-gray-500">ประเภทปัญหา</label>
-                      <p className="text-gray-900">{selectedComplaint.type}</p>
-                    </div>
-                    <div>
-                      <label className="text-sm font-medium text-gray-500">สถานะ</label>
-                      <div className="flex items-center space-x-2 mt-1">
-                        {getStatusIcon(selectedComplaint.status)}
-                        <span className={`px-2 py-1 rounded-full text-sm font-medium bg-${getStatusColor(selectedComplaint.status)}-100 text-${getStatusColor(selectedComplaint.status)}-800`}>
-                          {getStatusLabel(selectedComplaint.status)}
-                        </span>
-                      </div>
-                    </div>
-                    <div>
-                      <label className="text-sm font-medium text-gray-500">ชื่อผู้แจ้ง</label>
-                      <p className="text-gray-900">{selectedComplaint.name}</p>
-                    </div>
-                    <div>
-                      <label className="text-sm font-medium text-gray-500">เบอร์โทรศัพท์</label>
-                      <p className="text-gray-900">{selectedComplaint.phone}</p>
-                    </div>
-                    <div>
-                      <label className="text-sm font-medium text-gray-500">วันที่แจ้ง</label>
-                      <p className="text-gray-900">{formatDate(selectedComplaint.createdAt)}</p>
-                    </div>
-                    {selectedComplaint.location && (
-                      <div>
-                        <label className="text-sm font-medium text-gray-500">สถานที่</label>
-                        <p className="text-gray-900">{selectedComplaint.location}</p>
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                <div>
-                  <label className="text-sm font-medium text-gray-500">รายละเอียดปัญหา</label>
-                  <p className="text-gray-900 mt-1">{selectedComplaint.description}</p>
-                </div>
-
-                {/* Original Images */}
-                {JSON.parse(selectedComplaint.images || '[]').length > 0 && (
-                  <div>
-                    <h4 className="text-md font-semibold text-gray-900 mb-3">รูปภาพประกอบการแจ้ง</h4>
-                    <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                      {JSON.parse(selectedComplaint.images || '[]').map((image: string, index: number) => (
-                        <div key={index} className="relative group">
-                          <img
-                            src={image}
-                            alt={`รูปภาพ ${index + 1}`}
-                            className="w-full h-32 object-cover rounded-lg"
-                          />
-                          <a
-                            href={image}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity rounded-lg"
-                          >
-                            <span className="text-white text-sm">ดูรูปใหญ่</span>
-                          </a>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* Resolution Details */}
-                {selectedComplaint.status === 'RESOLVED' && selectedComplaint.resolutionDetails && (
-                  <div>
-                    <h4 className="text-md font-semibold text-gray-900 mb-3">รายละเอียดการแก้ไข</h4>
-                    <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
-                      <p className="text-gray-900">{selectedComplaint.resolutionDetails}</p>
-                      {selectedComplaint.resolvedAt && (
-                        <p className="text-sm text-green-600 mt-2">
-                          แก้ไขเมื่อ: {formatDate(selectedComplaint.resolvedAt)}
-                        </p>
-                      )}
-                    </div>
-
-                    {/* Resolution Images */}
-                    {JSON.parse(selectedComplaint.resolutionImages || '[]').length > 0 && (
-                      <div className="mt-4">
-                        <h5 className="text-sm font-medium text-gray-700 mb-3">รูปภาพหลักฐานการแก้ไข</h5>
-                        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                          {JSON.parse(selectedComplaint.resolutionImages || '[]').map((image: string, index: number) => (
-                            <div key={index} className="relative group">
-                              <img
-                                src={image}
-                                alt={`รูปภาพหลักฐาน ${index + 1}`}
-                                className="w-full h-32 object-cover rounded-lg border-2 border-green-200"
-                              />
-                              <a
-                                href={image}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity rounded-lg"
-                              >
-                                <span className="text-white text-sm">ดูรูปใหญ่</span>
-                              </a>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                {/* Notes */}
-                {selectedComplaint.notes && (
-                  <div>
-                    <h4 className="text-md font-semibold text-gray-900 mb-3">บันทึกช่วยจำ</h4>
-                    <div className="p-4 bg-gray-50 border border-gray-200 rounded-lg">
-                      <p className="text-gray-900">{selectedComplaint.notes}</p>
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   )
 }
