@@ -28,11 +28,9 @@ interface Complaint {
 }
 
 const STEPS = [
-  { key: 'received', title: 'รับเรื่อง', actor: 'ระบบ' },
-  { key: 'review', title: 'เจ้าหน้าที่ตรวจสอบ', actor: 'เจ้าหน้าที่' },
-  { key: 'onsite', title: 'ลงพื้นที่ซ่อมแซม', actor: 'ทีมช่าง' },
-  { key: 'inspection', title: 'ตรวจรับงาน', actor: '' },
-  { key: 'closed', title: 'ปิดเรื่อง', actor: '' },
+  { key: 'submitted', title: 'แจ้งเรื่องเข้ามาในระบบ', actor: 'ระบบ' },
+  { key: 'accepted', title: 'เจ้าหน้าที่รับเรื่อง', actor: 'เจ้าหน้าที่' },
+  { key: 'closed', title: 'ปิดเคส', actor: 'เจ้าหน้าที่' },
 ] as const
 
 type StepState = 'done' | 'current' | 'pending'
@@ -40,9 +38,9 @@ type StepState = 'done' | 'current' | 'pending'
 function getCurrentStepIndex(status: Complaint['status']): number {
   switch (status) {
     case 'PENDING':
-      return 1 // step 1 done, step 2 current
+      return 1 // step 1 done, waiting for staff to accept
     case 'IN_PROGRESS':
-      return 2 // steps 1-2 done, step 3 current
+      return 2 // accepted, waiting to be closed
     case 'RESOLVED':
       return STEPS.length // all done
     case 'REJECTED':
@@ -152,12 +150,18 @@ export default function ComplaintDetailPage() {
     return 'pending'
   }
 
-  // Per-step timestamps (best-effort given current schema)
+  // Per-step timestamps (best-effort given the schema)
   const stepDate = (idx: number): string | null => {
     if (idx === 0) return complaint.createdAt
-    if (idx === currentIdx) return complaint.updatedAt
     if (idx < currentIdx) return complaint.updatedAt
     return null
+  }
+
+  // Status text shown for the current step instead of a date
+  const currentStepLabel = (): string => {
+    if (complaint.status === 'PENDING') return 'อยู่ระหว่างเจ้าหน้าที่ตรวจสอบ'
+    if (complaint.status === 'IN_PROGRESS') return 'อยู่ระหว่างดำเนินการ'
+    return ''
   }
 
   return (
@@ -272,17 +276,25 @@ export default function ComplaintDetailPage() {
                   </div>
                   <div
                     className={`text-sm mt-0.5 ${
-                      state === 'pending' ? 'text-gray-400' : 'text-gray-600'
+                      state === 'current'
+                        ? 'text-blue-600 font-medium'
+                        : state === 'pending'
+                        ? 'text-gray-400'
+                        : 'text-gray-600'
                     }`}
                   >
-                    {date ? formatThaiShort(date) : idx === totalSteps - 1 && complaint.status !== 'RESOLVED' ? '—' : 'รอดำเนินการ'}
+                    {state === 'current'
+                      ? currentStepLabel() || 'รอดำเนินการ'
+                      : date
+                      ? formatThaiShort(date)
+                      : '—'}
                   </div>
                   <div
                     className={`text-sm ${
                       state === 'pending' ? 'text-gray-300' : 'text-gray-500'
                     }`}
                   >
-                    {state === 'pending' ? '—' : step.actor || '—'}
+                    {state === 'pending' || state === 'current' ? '—' : step.actor || '—'}
                   </div>
 
                   {state === 'current' && complaint.notes && (
