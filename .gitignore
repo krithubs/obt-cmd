@@ -48,3 +48,6 @@ prisma/prisma/
 /geocode-complaints.js
 /seed-complaints.js
 /dev.db
+
+CLAUDE.md
+.claude/
