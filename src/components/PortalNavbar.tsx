@@ -9,6 +9,7 @@ const navItems = [
   { href: '/portal', label: 'หน้าแรก' },
   { href: '/portal/news', label: 'ข่าวสาร' },
   { href: '/portal/complaint-form', label: 'แจ้งปัญหา' },
+  { href: '/portal/permits', label: 'คำร้อง/ใบอนุญาต' },
   { href: '/portal/faq', label: 'คำถาม' },
 ]
 

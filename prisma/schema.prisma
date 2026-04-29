@@ -70,4 +70,58 @@ model User {
   audit_logs AuditLog[]
   complaints Complaint[]
   news       News[]
+  permitRequests PermitRequest[]
+}
+
+model PermitType {
+  id           String   @id
+  name         String
+  slug         String   @unique
+  category     String   @default("general")
+  description  String?
+  formFileUrl  String?
+  requiredDocs String   @default("[]")
+  isActive     Boolean  @default(true)
+  sortOrder    Int      @default(0)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  requests     PermitRequest[]
+}
+
+model PermitRequest {
+  id            String   @id
+  requestNo     String   @unique
+  trackingToken String   @unique
+  permitTypeId  String
+  permitType    PermitType @relation(fields: [permitTypeId], references: [id])
+  fullName      String
+  phone         String
+  email         String?
+  address       String?
+  details       String
+  documents     String   @default("[]")
+  status        String   @default("SUBMITTED")
+  assignedTo    String?
+  reviewer      User?    @relation(fields: [assignedTo], references: [id])
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  history       PermitStatusHistory[]
+}
+
+model PermitTypeTombstone {
+  slug      String   @id
+  reason    String?
+  deletedAt DateTime @default(now())
+}
+
+model PermitStatusHistory {
+  id          String   @id
+  requestId   String
+  request     PermitRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  fromStatus  String?
+  toStatus    String
+  note        String?
+  attachments String   @default("[]")
+  changedBy   String?
+  createdAt   DateTime @default(now())
 }

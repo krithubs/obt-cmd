@@ -1,12 +1,47 @@
 'use client'
 
+import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { BarChart3, FileText, Users, TrendingUp, AlertCircle, LogOut, Home } from 'lucide-react'
+import {
+  BarChart3,
+  FileText,
+  Users,
+  TrendingUp,
+  AlertCircle,
+  LogOut,
+  Home,
+  FileCheck,
+  Settings,
+  ChevronDown,
+  ChevronRight,
+} from 'lucide-react'
 
-const NAV_ITEMS = [
+type LeafItem = { href: string; label: string; icon: React.ComponentType<{ className?: string }> }
+type GroupItem = {
+  key: string
+  label: string
+  icon: React.ComponentType<{ className?: string }>
+  children: LeafItem[]
+}
+type NavItem = LeafItem | GroupItem
+
+function isGroup(item: NavItem): item is GroupItem {
+  return (item as GroupItem).children !== undefined
+}
+
+const NAV_ITEMS: NavItem[] = [
   { href: '/admin/dashboard', label: 'แดชบอร์ด', icon: BarChart3 },
   { href: '/admin/complaints', label: 'รายการคำร้อง', icon: FileText },
+  {
+    key: 'permits-group',
+    label: 'ใบอนุญาต ยื่นแบบ',
+    icon: FileCheck,
+    children: [
+      { href: '/admin/permits', label: 'รายการคำร้องใบอนุญาต', icon: FileCheck },
+      { href: '/admin/permit-types', label: 'ประเภทคำร้องใบอนุญาต', icon: Settings },
+    ],
+  },
   { href: '/admin/news', label: 'ประชาสัมพันธ์', icon: TrendingUp },
   { href: '/admin/users', label: 'ผู้ใช้', icon: Users },
   { href: '/admin/audit', label: 'บันทึกการทำงาน', icon: AlertCircle },
@@ -14,6 +49,26 @@ const NAV_ITEMS = [
 
 export default function AdminSidebar() {
   const pathname = usePathname()
+
+  const initialOpen: Record<string, boolean> = {}
+  for (const item of NAV_ITEMS) {
+    if (isGroup(item)) {
+      initialOpen[item.key] = item.children.some((c) => pathname.startsWith(c.href))
+    }
+  }
+  const [openGroups, setOpenGroups] = useState<Record<string, boolean>>(initialOpen)
+
+  useEffect(() => {
+    setOpenGroups((prev) => {
+      const next = { ...prev }
+      for (const item of NAV_ITEMS) {
+        if (isGroup(item) && item.children.some((c) => pathname.startsWith(c.href))) {
+          next[item.key] = true
+        }
+      }
+      return next
+    })
+  }, [pathname])
 
   return (
     <div className="w-64 bg-gradient-to-b from-gray-900 to-gray-800 min-h-screen sticky top-0 flex flex-col">
@@ -31,6 +86,61 @@ export default function AdminSidebar() {
 
       <nav className="mt-2 flex-1 px-3 space-y-1">
         {NAV_ITEMS.map((item) => {
+          if (isGroup(item)) {
+            const open = !!openGroups[item.key]
+            const hasActiveChild = item.children.some((c) => pathname === c.href)
+            return (
+              <div key={item.key}>
+                <button
+                  type="button"
+                  onClick={() =>
+                    setOpenGroups((p) => ({ ...p, [item.key]: !p[item.key] }))
+                  }
+                  className={`w-full flex items-center px-4 py-3 rounded-xl transition-all ${
+                    hasActiveChild
+                      ? 'text-white bg-white/10 backdrop-blur-sm'
+                      : 'text-gray-400 hover:text-white hover:bg-white/5'
+                  }`}
+                >
+                  <item.icon
+                    className={`w-5 h-5 mr-3 ${hasActiveChild ? 'text-blue-400' : ''}`}
+                  />
+                  <span className={`flex-1 text-left ${hasActiveChild ? 'font-medium' : ''}`}>
+                    {item.label}
+                  </span>
+                  {open ? (
+                    <ChevronDown className="w-4 h-4" />
+                  ) : (
+                    <ChevronRight className="w-4 h-4" />
+                  )}
+                </button>
+                {open && (
+                  <div className="mt-1 ml-3 pl-3 border-l border-white/10 space-y-1">
+                    {item.children.map((child) => {
+                      const isActive = pathname === child.href
+                      return (
+                        <Link
+                          key={child.href}
+                          href={child.href}
+                          className={`flex items-center px-3 py-2 rounded-lg text-sm transition-all ${
+                            isActive
+                              ? 'text-white bg-white/10'
+                              : 'text-gray-400 hover:text-white hover:bg-white/5'
+                          }`}
+                        >
+                          <child.icon
+                            className={`w-4 h-4 mr-2 ${isActive ? 'text-blue-400' : ''}`}
+                          />
+                          <span className={isActive ? 'font-medium' : ''}>{child.label}</span>
+                        </Link>
+                      )
+                    })}
+                  </div>
+                )}
+              </div>
+            )
+          }
+
           const isActive = pathname === item.href
           return (
             <Link
@@ -59,7 +169,10 @@ export default function AdminSidebar() {
             <p className="text-gray-500 text-xs truncate">admin@codemonday.go.th</p>
           </div>
         </div>
-        <Link href="/admin/login" className="flex items-center text-gray-500 hover:text-red-400 mt-3 text-sm transition-colors">
+        <Link
+          href="/admin/login"
+          className="flex items-center text-gray-500 hover:text-red-400 mt-3 text-sm transition-colors"
+        >
           <LogOut className="w-4 h-4 mr-2" />
           ออกจากระบบ
         </Link>

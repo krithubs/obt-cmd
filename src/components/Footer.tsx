@@ -61,6 +61,8 @@ export default function Footer() {
               <li><Link href="/portal" className="text-gray-300 hover:text-white transition-colors text-sm">หน้าแรก</Link></li>
               <li><Link href="/portal/news" className="text-gray-300 hover:text-white transition-colors text-sm">ข่าวสารประชาสัมพันธ์</Link></li>
               <li><Link href="/portal/complaint-form" className="text-gray-300 hover:text-white transition-colors text-sm">แจ้งปัญหา</Link></li>
+              <li><Link href="/portal/permits" className="text-gray-300 hover:text-white transition-colors text-sm">คำร้อง/ใบอนุญาต</Link></li>
+              <li><Link href="/portal/permits/track" className="text-gray-300 hover:text-white transition-colors text-sm">ติดตามคำร้องใบอนุญาต</Link></li>
               <li><Link href="/portal/faq" className="text-gray-300 hover:text-white transition-colors text-sm">คำถามที่พบบ่อย</Link></li>
               <li><Link href="/portal/tracking" className="text-gray-300 hover:text-white transition-colors text-sm">ติดตามสถานะคำร้อง</Link></li>
             </ul>
