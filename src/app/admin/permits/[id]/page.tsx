@@ -3,7 +3,17 @@
 import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { useParams } from 'next/navigation'
-import { ChevronLeft, FileText, Loader2, Clock, ChevronDown, Check } from 'lucide-react'
+import {
+  ChevronLeft,
+  FileText,
+  Loader2,
+  Clock,
+  ChevronDown,
+  Check,
+  CreditCard,
+  CheckCircle2,
+  XCircle,
+} from 'lucide-react'
 import { PageLoading } from '@/components/ui'
 import {
   PERMIT_STATUSES,
@@ -33,9 +43,18 @@ type Detail = {
   details: string
   documents: string
   status: PermitStatus
+  feeAmount: number | string | null
+  paymentSlipUrl: string | null
+  paidAt: string | null
   createdAt: string
   updatedAt: string
-  permitType: { id: string; name: string; slug: string }
+  permitType: {
+    id: string
+    name: string
+    slug: string
+    requiresPayment?: boolean
+    defaultFee?: number | string | null
+  }
   history: HistoryItem[]
 }
 
@@ -82,6 +101,8 @@ function StatusPicker({
                 SUBMITTED: 'bg-slate-500',
                 UNDER_REVIEW: 'bg-blue-500',
                 NEED_MORE_INFO: 'bg-amber-500',
+                AWAITING_PAYMENT: 'bg-orange-500',
+                PAYMENT_VERIFYING: 'bg-indigo-500',
                 APPROVED: 'bg-emerald-500',
                 REJECTED: 'bg-rose-500',
                 COMPLETED: 'bg-violet-500',
@@ -108,6 +129,8 @@ function StatusPicker({
                 SUBMITTED: 'bg-slate-500',
                 UNDER_REVIEW: 'bg-blue-500',
                 NEED_MORE_INFO: 'bg-amber-500',
+                AWAITING_PAYMENT: 'bg-orange-500',
+                PAYMENT_VERIFYING: 'bg-indigo-500',
                 APPROVED: 'bg-emerald-500',
                 REJECTED: 'bg-rose-500',
                 COMPLETED: 'bg-violet-500',
@@ -172,14 +195,24 @@ export default function AdminPermitDetailPage() {
     load()
   }, [params.id])
 
+  const [feeInput, setFeeInput] = useState<string>('')
+
   async function update() {
     setSaving(true)
     setError(null)
     try {
+      const payload: Record<string, unknown> = { status: nextStatus, note }
+      if (nextStatus === 'AWAITING_PAYMENT') {
+        const fee = parseFloat(feeInput)
+        if (!feeInput || Number.isNaN(fee) || fee <= 0) {
+          throw new Error('กรุณาระบุยอดเรียกเก็บ')
+        }
+        payload.feeAmount = fee
+      }
       const res = await fetch(`/api/permits/requests/${params.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: nextStatus, note }),
+        body: JSON.stringify(payload),
       })
       const d = await res.json()
       if (!res.ok) throw new Error(d.error || 'บันทึกไม่สำเร็จ')
@@ -190,6 +223,25 @@ export default function AdminPermitDetailPage() {
     } finally {
       setSaving(false)
     }
+  }
+
+  useEffect(() => {
+    if (data && nextStatus === 'AWAITING_PAYMENT' && !feeInput) {
+      const def =
+        data.feeAmount != null
+          ? String(data.feeAmount)
+          : data.permitType.defaultFee != null
+          ? String(data.permitType.defaultFee)
+          : ''
+      if (def) setFeeInput(def)
+    }
+  }, [data, nextStatus, feeInput])
+
+  function formatBaht(v: number | string | null | undefined) {
+    if (v === null || v === undefined || v === '') return '—'
+    const n = typeof v === 'number' ? v : parseFloat(String(v))
+    if (Number.isNaN(n)) return '—'
+    return n.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
   }
 
   if (!data && !error) return <PageLoading />
@@ -289,6 +341,75 @@ export default function AdminPermitDetailPage() {
               </div>
             )}
 
+            {(data.status === 'AWAITING_PAYMENT' ||
+              data.status === 'PAYMENT_VERIFYING' ||
+              data.paymentSlipUrl) && (
+              <div className="bg-white rounded-2xl shadow p-6">
+                <h3 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                  <CreditCard size={18} className="text-orange-600" />
+                  การชำระเงิน
+                </h3>
+                <div className="grid sm:grid-cols-2 gap-4 text-sm">
+                  <div>
+                    <p className="text-gray-500">ยอดเรียกเก็บ</p>
+                    <p className="font-bold text-2xl text-orange-700">
+                      ฿{formatBaht(data.feeAmount)}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-gray-500">วันที่ชำระ</p>
+                    <p className="font-medium text-gray-900">
+                      {data.paidAt
+                        ? new Date(data.paidAt).toLocaleString('th-TH', {
+                            dateStyle: 'medium',
+                            timeStyle: 'short',
+                          })
+                        : '—'}
+                    </p>
+                  </div>
+                  {data.paymentSlipUrl && (
+                    <div className="sm:col-span-2">
+                      <p className="text-gray-500 mb-2">สลิปการชำระเงิน</p>
+                      <a
+                        href={data.paymentSlipUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-block"
+                      >
+                        <img
+                          src={data.paymentSlipUrl}
+                          alt="สลิป"
+                          className="max-w-xs rounded-xl border border-gray-200 shadow-sm bg-white"
+                        />
+                      </a>
+                    </div>
+                  )}
+                </div>
+                {data.status === 'PAYMENT_VERIFYING' && (
+                  <div className="mt-4 pt-4 border-t flex flex-wrap gap-2">
+                    <button
+                      onClick={async () => {
+                        setNextStatus('COMPLETED')
+                        setNote('ตรวจสอบสลิปแล้ว — ดำเนินการเสร็จสิ้น')
+                      }}
+                      className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-emerald-50 text-emerald-700 hover:bg-emerald-100 text-sm font-medium"
+                    >
+                      <CheckCircle2 size={14} /> ใช้สลิปนี้ → ตั้งสถานะ "เสร็จสิ้น"
+                    </button>
+                    <button
+                      onClick={() => {
+                        setNextStatus('AWAITING_PAYMENT')
+                        setNote('สลิปไม่ถูกต้อง — กรุณาส่งสลิปใหม่')
+                      }}
+                      className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-rose-50 text-rose-700 hover:bg-rose-100 text-sm font-medium"
+                    >
+                      <XCircle size={14} /> ปฏิเสธสลิป → กลับไปรอชำระ
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+
             <div className="bg-white rounded-2xl shadow p-6">
               <h3 className="font-semibold text-gray-900 mb-4">ประวัติสถานะ</h3>
               <ol className="relative border-l-2 border-gray-200 ml-3 space-y-5">
@@ -333,6 +454,29 @@ export default function AdminPermitDetailPage() {
               <div className="mb-3">
                 <StatusPicker value={nextStatus} onChange={setNextStatus} />
               </div>
+
+              {nextStatus === 'AWAITING_PAYMENT' && data.permitType.requiresPayment && (
+                <div className="mb-3 rounded-xl bg-orange-50 border border-orange-200 p-3 space-y-2">
+                  <label className="block text-xs font-medium text-orange-900">
+                    ยอดเรียกเก็บ (บาท) <span className="text-rose-500">*</span>
+                  </label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={feeInput}
+                    onChange={(e) => setFeeInput(e.target.value)}
+                    className="w-full px-3 py-2 rounded-lg border border-orange-300 bg-white focus:ring-2 focus:ring-orange-300 outline-none text-sm"
+                  />
+                </div>
+              )}
+
+              {nextStatus === 'AWAITING_PAYMENT' && !data.permitType.requiresPayment && (
+                <div className="mb-3 rounded-xl bg-rose-50 border border-rose-200 p-3 text-xs text-rose-700">
+                  ประเภทคำร้องนี้ไม่ได้ตั้งค่าให้เก็บค่าธรรมเนียม — ไปแก้ที่ "ประเภทคำร้องใบอนุญาต" ก่อน
+                </div>
+              )}
+
               <textarea
                 rows={4}
                 value={note}

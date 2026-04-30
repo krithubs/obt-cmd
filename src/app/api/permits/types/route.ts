@@ -46,6 +46,13 @@ export async function POST(request: NextRequest) {
         formFileUrl: body.formFileUrl ? String(body.formFileUrl) : null,
         requiredDocs: JSON.stringify(Array.isArray(body.requiredDocs) ? body.requiredDocs : []),
         isActive: body.isActive !== false,
+        requiresPayment: body.requiresPayment === true,
+        paymentQrUrl: body.paymentQrUrl ? String(body.paymentQrUrl) : null,
+        defaultFee:
+          typeof body.defaultFee === 'number' && body.defaultFee >= 0
+            ? body.defaultFee
+            : null,
+        paymentNote: body.paymentNote ? String(body.paymentNote) : null,
         updatedAt: new Date(),
       },
     })

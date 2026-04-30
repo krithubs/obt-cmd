@@ -74,18 +74,22 @@ model User {
 }
 
 model PermitType {
-  id           String   @id
-  name         String
-  slug         String   @unique
-  category     String   @default("general")
-  description  String?
-  formFileUrl  String?
-  requiredDocs String   @default("[]")
-  isActive     Boolean  @default(true)
-  sortOrder    Int      @default(0)
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-  requests     PermitRequest[]
+  id              String   @id
+  name            String
+  slug            String   @unique
+  category        String   @default("general")
+  description     String?
+  formFileUrl     String?
+  requiredDocs    String   @default("[]")
+  isActive        Boolean  @default(true)
+  sortOrder       Int      @default(0)
+  requiresPayment Boolean  @default(false)
+  paymentQrUrl    String?
+  defaultFee      Decimal? @db.Decimal(10, 2)
+  paymentNote     String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  requests        PermitRequest[]
 }
 
 model PermitRequest {
@@ -101,6 +105,9 @@ model PermitRequest {
   details       String
   documents     String   @default("[]")
   status        String   @default("SUBMITTED")
+  feeAmount     Decimal? @db.Decimal(10, 2)
+  paymentSlipUrl String?
+  paidAt        DateTime?
   assignedTo    String?
   reviewer      User?    @relation(fields: [assignedTo], references: [id])
   createdAt     DateTime @default(now())

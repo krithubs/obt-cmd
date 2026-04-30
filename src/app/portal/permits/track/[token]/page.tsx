@@ -12,6 +12,8 @@ import {
   Loader2,
   X,
   AlertCircle,
+  CreditCard,
+  Hourglass,
 } from 'lucide-react'
 import PortalNavbar from '@/components/PortalNavbar'
 import Footer from '@/components/Footer'
@@ -36,9 +38,18 @@ type TrackData = {
   details: string
   documents: string
   status: PermitStatus
+  feeAmount: number | string | null
+  paymentSlipUrl: string | null
+  paidAt: string | null
   createdAt: string
   updatedAt: string
-  permitType: { name: string; slug: string }
+  permitType: {
+    name: string
+    slug: string
+    requiresPayment?: boolean
+    paymentQrUrl?: string | null
+    paymentNote?: string | null
+  }
   history: HistoryItem[]
 }
 
@@ -67,6 +78,64 @@ export default function TrackDetailPage() {
   const [error, setError] = useState<string | null>(null)
   const [extraFiles, setExtraFiles] = useState<UploadedFile[]>([])
   const [extraNote, setExtraNote] = useState('')
+  const [slipFile, setSlipFile] = useState<UploadedFile | null>(null)
+  const [slipUploading, setSlipUploading] = useState(false)
+  const [slipSubmitting, setSlipSubmitting] = useState(false)
+  const [slipNote, setSlipNote] = useState('')
+
+  async function handleSlipUpload(files: FileList | null) {
+    if (!files || files.length === 0) return
+    setSlipUploading(true)
+    setError(null)
+    try {
+      const fd = new FormData()
+      Array.from(files)
+        .slice(0, 1)
+        .forEach((f) => fd.append('files', f))
+      fd.append('docKey', 'slip')
+      const res = await fetch('/api/permits/upload', { method: 'POST', body: fd })
+      const r = await res.json()
+      if (!res.ok) throw new Error(r.error || 'อัปโหลดไม่สำเร็จ')
+      setSlipFile(r.files?.[0] || null)
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'อัปโหลดไม่สำเร็จ')
+    } finally {
+      setSlipUploading(false)
+    }
+  }
+
+  async function submitSlip() {
+    if (!slipFile) {
+      setError('กรุณาแนบสลิปการชำระเงิน')
+      return
+    }
+    setSlipSubmitting(true)
+    setError(null)
+    try {
+      const res = await fetch(`/api/permits/track/${params.token}/payment`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ slipUrl: slipFile.url, note: slipNote || null }),
+      })
+      const d = await res.json()
+      if (!res.ok) throw new Error(d.error || 'ส่งสลิปไม่สำเร็จ')
+      setSubmitMsg('ส่งสลิปการชำระเงินเรียบร้อยแล้ว — รอเจ้าหน้าที่ตรวจสอบ')
+      setSlipFile(null)
+      setSlipNote('')
+      await load()
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'ส่งสลิปไม่สำเร็จ')
+    } finally {
+      setSlipSubmitting(false)
+    }
+  }
+
+  function formatBaht(v: number | string | null | undefined) {
+    if (v === null || v === undefined || v === '') return '—'
+    const n = typeof v === 'number' ? v : parseFloat(String(v))
+    if (Number.isNaN(n)) return '—'
+    return n.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+  }
   const [uploading, setUploading] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [submitMsg, setSubmitMsg] = useState<string | null>(null)
@@ -222,6 +291,152 @@ export default function TrackDetailPage() {
                 )}
               </div>
             </div>
+
+            {data.status === 'AWAITING_PAYMENT' && (
+              <div className="bg-white rounded-3xl shadow-xl overflow-hidden border-2 border-orange-300">
+                <div className="bg-orange-50 p-5 flex items-start gap-3">
+                  <CreditCard className="text-orange-600 mt-0.5" size={20} />
+                  <div className="flex-1">
+                    <p className="font-semibold text-orange-900">รอชำระเงิน</p>
+                    <p className="text-sm text-orange-800 mt-0.5">
+                      กรุณาสแกน QR เพื่อชำระค่าธรรมเนียม แล้วอัปโหลดสลิปเพื่อดำเนินการต่อ
+                    </p>
+                  </div>
+                </div>
+                <div className="p-5 sm:p-6 grid sm:grid-cols-2 gap-6">
+                  <div className="space-y-3">
+                    <div className="rounded-2xl border border-gray-200 p-4 bg-gradient-to-br from-orange-50 to-amber-50">
+                      <p className="text-xs text-gray-500 uppercase tracking-wide">
+                        ยอดที่ต้องชำระ
+                      </p>
+                      <p className="text-3xl font-bold text-orange-700 mt-1">
+                        ฿{formatBaht(data.feeAmount)}
+                      </p>
+                    </div>
+                    {data.permitType.paymentNote && (
+                      <div className="rounded-xl bg-gray-50 p-3 text-sm text-gray-700 whitespace-pre-wrap">
+                        {data.permitType.paymentNote}
+                      </div>
+                    )}
+                    {data.permitType.paymentQrUrl ? (
+                      <a
+                        href={data.permitType.paymentQrUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="block"
+                      >
+                        <img
+                          src={data.permitType.paymentQrUrl}
+                          alt="QR ชำระเงิน"
+                          className="w-full max-w-xs mx-auto rounded-xl border border-gray-200 shadow-sm bg-white"
+                        />
+                      </a>
+                    ) : (
+                      <div className="rounded-xl border border-dashed border-gray-300 p-6 text-center text-gray-400 text-sm">
+                        ยังไม่มี QR สำหรับชำระ — โปรดติดต่อเจ้าหน้าที่
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="space-y-3">
+                    {submitMsg && (
+                      <div className="rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 p-3 text-sm">
+                        {submitMsg}
+                      </div>
+                    )}
+                    {error && (
+                      <div className="rounded-xl bg-rose-50 border border-rose-200 text-rose-700 p-3 text-sm">
+                        {error}
+                      </div>
+                    )}
+                    <p className="text-sm font-medium text-gray-900">
+                      อัปโหลดสลิปการชำระเงิน
+                    </p>
+                    <label className="inline-flex items-center gap-2 px-3 py-2 rounded-lg cursor-pointer text-sm font-medium bg-blue-50 text-blue-700 hover:bg-blue-100">
+                      {slipUploading ? (
+                        <Loader2 size={14} className="animate-spin" />
+                      ) : (
+                        <Upload size={14} />
+                      )}
+                      เลือกรูปสลิป
+                      <input
+                        type="file"
+                        hidden
+                        disabled={slipUploading}
+                        accept="image/jpeg,image/png"
+                        onChange={(e) => handleSlipUpload(e.target.files)}
+                      />
+                    </label>
+                    {slipFile && (
+                      <div className="rounded-xl border border-gray-200 p-2 flex items-center gap-2">
+                        <img
+                          src={slipFile.url}
+                          alt="slip"
+                          className="w-16 h-16 object-cover rounded-lg"
+                        />
+                        <span className="flex-1 text-sm truncate">{slipFile.name}</span>
+                        <button
+                          onClick={() => setSlipFile(null)}
+                          className="text-rose-500 hover:text-rose-700"
+                        >
+                          <X size={14} />
+                        </button>
+                      </div>
+                    )}
+                    <textarea
+                      rows={2}
+                      placeholder="หมายเหตุ (ไม่บังคับ)"
+                      value={slipNote}
+                      onChange={(e) => setSlipNote(e.target.value)}
+                      className="w-full px-3 py-2 rounded-xl border border-gray-200 focus:ring-2 focus:ring-blue-300 focus:border-blue-400 outline-none resize-none text-sm"
+                    />
+                    <button
+                      onClick={submitSlip}
+                      disabled={slipSubmitting || !slipFile}
+                      className="w-full inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-orange-500 to-amber-500 text-white font-medium shadow hover:shadow-lg transition disabled:opacity-50"
+                    >
+                      {slipSubmitting ? (
+                        <Loader2 size={16} className="animate-spin" />
+                      ) : (
+                        <Upload size={16} />
+                      )}
+                      ส่งสลิป
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {data.status === 'PAYMENT_VERIFYING' && (
+              <div className="bg-white rounded-3xl shadow-xl overflow-hidden border-2 border-indigo-300">
+                <div className="bg-indigo-50 p-5 flex items-start gap-3">
+                  <Hourglass className="text-indigo-600 mt-0.5" size={20} />
+                  <div className="flex-1">
+                    <p className="font-semibold text-indigo-900">รอตรวจสอบสลิป</p>
+                    <p className="text-sm text-indigo-800 mt-0.5">
+                      เจ้าหน้าที่กำลังตรวจสอบสลิปที่คุณส่งมา จะอัปเดตสถานะให้เร็วที่สุด
+                    </p>
+                  </div>
+                </div>
+                {data.paymentSlipUrl && (
+                  <div className="p-5 sm:p-6">
+                    <p className="text-xs text-gray-500 mb-2">สลิปที่ส่ง</p>
+                    <a
+                      href={data.paymentSlipUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-block"
+                    >
+                      <img
+                        src={data.paymentSlipUrl}
+                        alt="สลิป"
+                        className="w-full max-w-xs rounded-xl border border-gray-200 shadow-sm bg-white"
+                      />
+                    </a>
+                  </div>
+                )}
+              </div>
+            )}
 
             {data.status === 'NEED_MORE_INFO' && (
               <div className="bg-white rounded-3xl shadow-xl overflow-hidden border-2 border-amber-300">

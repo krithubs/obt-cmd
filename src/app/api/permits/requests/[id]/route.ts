@@ -36,23 +36,50 @@ export async function PATCH(
     const body = await request.json()
     const toStatus = String(body.status || '').trim() as PermitStatus
     const note = body.note ? String(body.note).trim() : null
+    const feeAmount =
+      typeof body.feeAmount === 'number' && body.feeAmount >= 0
+        ? body.feeAmount
+        : null
 
     if (!PERMIT_STATUSES.includes(toStatus)) {
       return NextResponse.json({ error: 'สถานะไม่ถูกต้อง' }, { status: 400 })
     }
 
-    const existing = await prisma.permitRequest.findUnique({ where: { id: params.id } })
+    const existing = await prisma.permitRequest.findUnique({
+      where: { id: params.id },
+      include: { permitType: true },
+    })
     if (!existing) return NextResponse.json({ error: 'ไม่พบคำร้อง' }, { status: 404 })
 
+    if (toStatus === 'AWAITING_PAYMENT') {
+      if (!existing.permitType.requiresPayment) {
+        return NextResponse.json(
+          { error: 'ประเภทคำร้องนี้ไม่ได้ตั้งค่าให้เก็บค่าธรรมเนียม' },
+          { status: 400 }
+        )
+      }
+      if (feeAmount === null || feeAmount <= 0) {
+        return NextResponse.json(
+          { error: 'กรุณาระบุยอดเรียกเก็บ' },
+          { status: 400 }
+        )
+      }
+    }
+
+    const updateData: Record<string, unknown> = {
+      status: toStatus,
+      assignedTo: existing.assignedTo || user.id,
+      updatedAt: new Date(),
+    }
+    if (toStatus === 'AWAITING_PAYMENT') {
+      updateData.feeAmount = feeAmount
+    }
+    if (toStatus === 'COMPLETED' && existing.status === 'PAYMENT_VERIFYING') {
+      updateData.paidAt = new Date()
+    }
+
     const [updated] = await prisma.$transaction([
-      prisma.permitRequest.update({
-        where: { id: params.id },
-        data: {
-          status: toStatus,
-          assignedTo: existing.assignedTo || user.id,
-          updatedAt: new Date(),
-        },
-      }),
+      prisma.permitRequest.update({ where: { id: params.id }, data: updateData }),
       prisma.permitStatusHistory.create({
         data: {
           id: `permit-hist-${Date.now()}`,
@@ -69,7 +96,12 @@ export async function PATCH(
           action: 'UPDATE_STATUS',
           resource: 'PERMIT_REQUEST',
           resourceId: params.id,
-          details: JSON.stringify({ from: existing.status, to: toStatus, note }),
+          details: JSON.stringify({
+            from: existing.status,
+            to: toStatus,
+            note,
+            feeAmount,
+          }),
           userId: user.id,
         },
       }),

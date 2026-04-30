@@ -9,7 +9,16 @@ export async function GET(
     const item = await prisma.permitRequest.findUnique({
       where: { trackingToken: params.token },
       include: {
-        permitType: { select: { name: true, slug: true, requiredDocs: true } },
+        permitType: {
+          select: {
+            name: true,
+            slug: true,
+            requiredDocs: true,
+            requiresPayment: true,
+            paymentQrUrl: true,
+            paymentNote: true,
+          },
+        },
         history: { orderBy: { createdAt: 'asc' } },
       },
     })
@@ -23,6 +32,9 @@ export async function GET(
       details: item.details,
       documents: item.documents,
       status: item.status,
+      feeAmount: item.feeAmount,
+      paymentSlipUrl: item.paymentSlipUrl,
+      paidAt: item.paidAt,
       createdAt: item.createdAt,
       updatedAt: item.updatedAt,
       permitType: item.permitType,

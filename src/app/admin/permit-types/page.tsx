@@ -27,6 +27,10 @@ type PermitType = {
   requiredDocs: string
   isActive: boolean
   sortOrder?: number
+  requiresPayment?: boolean
+  paymentQrUrl?: string | null
+  defaultFee?: number | string | null
+  paymentNote?: string | null
 }
 
 const emptyForm = {
@@ -41,6 +45,10 @@ const emptyForm = {
     { key: 'house_reg', label: 'สำเนาทะเบียนบ้าน', required: true },
   ] as RequiredDoc[],
   isActive: true,
+  requiresPayment: false,
+  paymentQrUrl: '',
+  defaultFee: '' as string,
+  paymentNote: '',
 }
 
 export default function AdminPermitTypesPage() {
@@ -82,6 +90,10 @@ export default function AdminPermitTypesPage() {
       formFileUrl: t.formFileUrl || '',
       requiredDocs: docs,
       isActive: t.isActive,
+      requiresPayment: !!t.requiresPayment,
+      paymentQrUrl: t.paymentQrUrl || '',
+      defaultFee: t.defaultFee != null ? String(t.defaultFee) : '',
+      paymentNote: t.paymentNote || '',
     })
   }
 
@@ -107,11 +119,33 @@ export default function AdminPermitTypesPage() {
     }
   }
 
+  const [uploadingQr, setUploadingQr] = useState(false)
+  async function uploadQr(file: File) {
+    setUploadingQr(true)
+    try {
+      const fd = new FormData()
+      fd.append('files', file)
+      fd.append('docKey', 'payment-qr')
+      const res = await fetch('/api/permits/upload', { method: 'POST', body: fd })
+      const d = await res.json()
+      if (!res.ok) throw new Error(d.error || 'อัปโหลดไม่สำเร็จ')
+      setForm((p) => ({ ...p, paymentQrUrl: d.files[0]?.url || '' }))
+    } catch (e) {
+      alert(e instanceof Error ? e.message : 'อัปโหลดไม่สำเร็จ')
+    } finally {
+      setUploadingQr(false)
+    }
+  }
+
   async function save() {
     setSaving(true)
     setError(null)
     try {
-      const payload = { ...form }
+      const fee = form.defaultFee.trim()
+      const payload = {
+        ...form,
+        defaultFee: fee === '' ? null : Number(fee),
+      }
       const url = editing === 'new' ? '/api/permits/types' : `/api/permits/types/${editing}`
       const method = editing === 'new' ? 'POST' : 'PATCH'
       const res = await fetch(url, {
@@ -502,7 +536,102 @@ export default function AdminPermitTypesPage() {
                   ))}
                 </div>
               </div>
-              <label className="flex items-center gap-2">
+              <div className="border-t pt-4 space-y-3">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={form.requiresPayment}
+                    onChange={(e) =>
+                      setForm({ ...form, requiresPayment: e.target.checked })
+                    }
+                  />
+                  <span className="text-sm font-medium text-gray-900">
+                    ต้องชำระค่าธรรมเนียมก่อนดำเนินการให้เสร็จ
+                  </span>
+                </label>
+
+                {form.requiresPayment && (
+                  <div className="ml-6 p-4 rounded-2xl bg-orange-50/60 border border-orange-200 space-y-3">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        ยอดเรียกเก็บเริ่มต้น (บาท) — เจ้าหน้าที่แก้ไขได้ตอนออกบิล
+                      </label>
+                      <input
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        placeholder="เช่น 500"
+                        value={form.defaultFee}
+                        onChange={(e) =>
+                          setForm({ ...form, defaultFee: e.target.value })
+                        }
+                        className="w-full px-3 py-2 rounded-xl border border-gray-200 focus:ring-2 focus:ring-blue-300 focus:border-blue-400 outline-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        รูป QR สำหรับชำระเงิน
+                      </label>
+                      <div className="flex items-start gap-3">
+                        <label
+                          className={`inline-flex items-center gap-2 px-3 py-2 rounded-xl cursor-pointer text-sm font-medium ${
+                            uploadingQr
+                              ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                              : 'bg-blue-50 text-blue-700 hover:bg-blue-100'
+                          }`}
+                        >
+                          {uploadingQr ? (
+                            <Loader2 size={14} className="animate-spin" />
+                          ) : (
+                            <Upload size={14} />
+                          )}
+                          อัปโหลด QR
+                          <input
+                            type="file"
+                            hidden
+                            accept="image/jpeg,image/png"
+                            disabled={uploadingQr}
+                            onChange={(e) => {
+                              const f = e.target.files?.[0]
+                              if (f) uploadQr(f)
+                            }}
+                          />
+                        </label>
+                        {form.paymentQrUrl && (
+                          <a
+                            href={form.paymentQrUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="block"
+                          >
+                            <img
+                              src={form.paymentQrUrl}
+                              alt="QR"
+                              className="w-24 h-24 rounded-lg border border-gray-200 object-cover bg-white"
+                            />
+                          </a>
+                        )}
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        ข้อความเพิ่มเติม (เช่น ชื่อบัญชี/ธนาคาร)
+                      </label>
+                      <textarea
+                        rows={2}
+                        placeholder="เช่น ธ.ออมสิน เลขที่ 020-...   ชื่อบัญชี อบต. CODEMONDAY"
+                        value={form.paymentNote}
+                        onChange={(e) =>
+                          setForm({ ...form, paymentNote: e.target.value })
+                        }
+                        className="w-full px-3 py-2 rounded-xl border border-gray-200 focus:ring-2 focus:ring-blue-300 focus:border-blue-400 outline-none resize-none text-sm"
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <label className="flex items-center gap-2 border-t pt-4">
                 <input
                   type="checkbox"
                   checked={form.isActive}
@@ -520,12 +649,16 @@ export default function AdminPermitTypesPage() {
               </button>
               <button
                 onClick={save}
-                disabled={saving || uploadingForm}
-                title={uploadingForm ? 'กำลังอัปโหลดไฟล์ — โปรดรอให้เสร็จก่อนบันทึก' : undefined}
+                disabled={saving || uploadingForm || uploadingQr}
+                title={
+                  uploadingForm || uploadingQr
+                    ? 'กำลังอัปโหลดไฟล์ — โปรดรอให้เสร็จก่อนบันทึก'
+                    : undefined
+                }
                 className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-blue-600 text-white font-medium hover:bg-blue-700 disabled:opacity-60 disabled:cursor-not-allowed"
               >
                 {saving ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
-                {uploadingForm ? 'กำลังอัปโหลด...' : 'บันทึก'}
+                {uploadingForm || uploadingQr ? 'กำลังอัปโหลด...' : 'บันทึก'}
               </button>
             </div>
           </div>

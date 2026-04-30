@@ -41,6 +41,14 @@ export async function PATCH(
     if (Array.isArray(body.requiredDocs))
       data.requiredDocs = JSON.stringify(body.requiredDocs)
     if (typeof body.isActive === 'boolean') data.isActive = body.isActive
+    if (typeof body.requiresPayment === 'boolean')
+      data.requiresPayment = body.requiresPayment
+    if (typeof body.paymentQrUrl === 'string' || body.paymentQrUrl === null)
+      data.paymentQrUrl = body.paymentQrUrl
+    if (typeof body.defaultFee === 'number' || body.defaultFee === null)
+      data.defaultFee = body.defaultFee
+    if (typeof body.paymentNote === 'string' || body.paymentNote === null)
+      data.paymentNote = body.paymentNote
 
     const updated = await prisma.permitType.update({
       where: { id: params.id },
