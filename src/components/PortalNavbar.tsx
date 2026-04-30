@@ -10,6 +10,7 @@ const navItems = [
   { href: '/portal/news', label: 'ข่าวสาร' },
   { href: '/portal/complaint-form', label: 'แจ้งปัญหา' },
   { href: '/portal/permits', label: 'คำร้อง/ใบอนุญาต' },
+  { href: '/portal/billing', label: 'ชำระค่าน้ำ-ไฟ-ภาษี' },
   { href: '/portal/faq', label: 'คำถาม' },
 ]
 

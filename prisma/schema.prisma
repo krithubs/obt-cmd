@@ -115,6 +115,80 @@ model PermitRequest {
   history       PermitStatusHistory[]
 }
 
+model Household {
+  id              String   @id
+  houseNo         String   @unique
+  villageNo       String?
+  address         String?
+  ownerName       String
+  ownerIdCard     String?
+  phone           String?
+  notes           String?
+  lookupToken     String   @unique
+  isActive        Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  bills           ResidentBill[]
+  payments        BillPayment[]
+}
+
+model ResidentBill {
+  id           String   @id
+  billNo       String   @unique
+  householdId  String
+  household    Household @relation(fields: [householdId], references: [id], onDelete: Cascade)
+  billType     String   // WATER / ELECTRICITY / TAX / WASTE
+  period       String   // "2026-04" (rent for monthly) or "2026" (yearly)
+  description  String?
+  amount       Decimal  @db.Decimal(10, 2)
+  dueDate      DateTime?
+  status       String   @default("UNPAID") // UNPAID / PAID / WAIVED / CANCELLED
+  paidAt       DateTime?
+  createdBy    String?  // staff userId
+  notes        String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  paymentItems BillPaymentItem[]
+}
+
+model BillPayment {
+  id              String   @id
+  paymentNo       String   @unique
+  householdId     String
+  household       Household @relation(fields: [householdId], references: [id], onDelete: Cascade)
+  totalAmount     Decimal  @db.Decimal(10, 2)
+  method          String?  // QR / TRANSFER / COUNTER
+  status          String   @default("PENDING") // PENDING / VERIFYING / VERIFIED / REJECTED / CANCELLED
+  paymentSlipUrl  String?
+  paidAt          DateTime?
+  verifiedBy      String?
+  verifiedAt      DateTime?
+  rejectionNote   String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  items           BillPaymentItem[]
+}
+
+model BillPaymentItem {
+  id         String  @id
+  paymentId  String
+  payment    BillPayment @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+  billId     String
+  bill       ResidentBill @relation(fields: [billId], references: [id], onDelete: Cascade)
+  amount     Decimal @db.Decimal(10, 2)
+  createdAt  DateTime @default(now())
+
+  @@unique([paymentId, billId])
+}
+
+model BillingSetting {
+  id            String  @id @default("default")
+  centralQrUrl  String?
+  bankAccounts  String  @default("[]") // JSON [{bankName, accountNo, accountName, branch}]
+  paymentNote   String?
+  updatedAt     DateTime @updatedAt
+}
+
 model PermitTypeTombstone {
   slug      String   @id
   reason    String?

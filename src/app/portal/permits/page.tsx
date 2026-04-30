@@ -108,20 +108,23 @@ export default function PermitsListPage() {
                 >
                   ทั้งหมด {items.length}
                 </button>
-                {grouped.map((g) => (
-                  <button
-                    key={g.key}
-                    onClick={() => setActiveCat(g.key)}
-                    className={`px-3 py-1.5 rounded-full text-sm font-medium border transition ${
-                      activeCat === g.key
-                        ? 'bg-blue-600 text-white border-blue-600'
-                        : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'
-                    }`}
-                  >
-                    <span className="mr-1">{g.icon}</span>
-                    {g.label} {g.items.length}
-                  </button>
-                ))}
+                {grouped.map((g) => {
+                  const Icon = g.icon
+                  return (
+                    <button
+                      key={g.key}
+                      onClick={() => setActiveCat(g.key)}
+                      className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium border transition ${
+                        activeCat === g.key
+                          ? 'bg-blue-600 text-white border-blue-600'
+                          : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'
+                      }`}
+                    >
+                      <Icon size={14} />
+                      {g.label} {g.items.length}
+                    </button>
+                  )
+                })}
               </div>
             )}
 
@@ -146,10 +149,12 @@ export default function PermitsListPage() {
             )}
 
             <div className="space-y-8">
-              {visibleGroups.map((g) => (
+              {visibleGroups.map((g) => {
+                const Icon = g.icon
+                return (
                 <section key={g.key}>
                   <header className="flex items-center gap-2 mb-3">
-                    <span className="text-2xl">{g.icon}</span>
+                    <Icon size={20} className="text-blue-600" />
                     <h2 className="text-lg font-semibold text-gray-900">{g.label}</h2>
                     <span className="text-sm text-gray-400">({g.items.length})</span>
                   </header>
@@ -179,7 +184,8 @@ export default function PermitsListPage() {
                     ))}
                   </div>
                 </section>
-              ))}
+                )
+              })}
             </div>
           </div>
         </div>

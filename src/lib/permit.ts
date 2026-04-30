@@ -94,13 +94,23 @@ export function generateTrackingToken() {
   return randomUUID()
 }
 
+import {
+  HardHat,
+  Store,
+  ClipboardList as ClipboardIcon,
+  Coins,
+  HeartHandshake,
+  FileText as FileTextIcon,
+  type LucideIcon,
+} from 'lucide-react'
+
 export const PERMIT_CATEGORIES = [
-  { key: 'construction', label: 'ก่อสร้างและสาธารณูปโภค', icon: '🏗️' },
-  { key: 'business', label: 'ประกอบกิจการและใบอนุญาต', icon: '🏪' },
-  { key: 'commercial', label: 'จดทะเบียนพาณิชย์', icon: '📋' },
-  { key: 'tax', label: 'ภาษีและการเงิน', icon: '💰' },
-  { key: 'welfare', label: 'สวัสดิการสังคม', icon: '🤝' },
-  { key: 'general', label: 'บริการทั่วไป', icon: '📑' },
+  { key: 'construction', label: 'ก่อสร้างและสาธารณูปโภค', icon: HardHat },
+  { key: 'business', label: 'ประกอบกิจการและใบอนุญาต', icon: Store },
+  { key: 'commercial', label: 'จดทะเบียนพาณิชย์', icon: ClipboardIcon },
+  { key: 'tax', label: 'ภาษีและการเงิน', icon: Coins },
+  { key: 'welfare', label: 'สวัสดิการสังคม', icon: HeartHandshake },
+  { key: 'general', label: 'บริการทั่วไป', icon: FileTextIcon },
 ] as const
 
 export type PermitCategoryKey = (typeof PERMIT_CATEGORIES)[number]['key']
@@ -109,8 +119,8 @@ export function categoryLabel(key: string): string {
   return PERMIT_CATEGORIES.find((c) => c.key === key)?.label || 'อื่น ๆ'
 }
 
-export function categoryIcon(key: string): string {
-  return PERMIT_CATEGORIES.find((c) => c.key === key)?.icon || '📄'
+export function categoryIcon(key: string): LucideIcon {
+  return PERMIT_CATEGORIES.find((c) => c.key === key)?.icon || FileTextIcon
 }
 
 export function slugify(s: string): string {

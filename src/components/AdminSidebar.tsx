@@ -15,6 +15,9 @@ import {
   Settings,
   ChevronDown,
   ChevronRight,
+  Wallet,
+  Receipt,
+  HomeIcon,
 } from 'lucide-react'
 
 type LeafItem = { href: string; label: string; icon: React.ComponentType<{ className?: string }> }
@@ -40,6 +43,16 @@ const NAV_ITEMS: NavItem[] = [
     children: [
       { href: '/admin/permits', label: 'รายการคำร้องใบอนุญาต', icon: FileCheck },
       { href: '/admin/permit-types', label: 'ประเภทคำร้องใบอนุญาต', icon: Settings },
+    ],
+  },
+  {
+    key: 'billing-group',
+    label: 'การจัดเก็บค่าบริการ',
+    icon: Wallet,
+    children: [
+      { href: '/admin/households', label: 'ทะเบียนบ้าน', icon: HomeIcon },
+      { href: '/admin/billing-payments', label: 'การชำระเงิน', icon: Receipt },
+      { href: '/admin/billing-settings', label: 'ตั้งค่า QR/บัญชี', icon: Settings },
     ],
   },
   { href: '/admin/news', label: 'ประชาสัมพันธ์', icon: TrendingUp },

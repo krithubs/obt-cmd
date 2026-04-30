@@ -284,20 +284,24 @@ export default function AdminPermitTypesPage() {
             {(items || []).map((t, idx, arr) => {
               const prev = idx > 0 ? arr[idx - 1] : null
               const showGroup = !prev || prev.category !== t.category
+              const CatIcon = categoryIcon(t.category)
               return (
                 <Fragment key={t.id}>
                   {showGroup && (
                     <tr className="bg-gray-50 border-b">
                       <td colSpan={6} className="px-4 py-2 text-xs font-semibold text-gray-700 uppercase tracking-wide">
-                        {categoryIcon(t.category)} {categoryLabel(t.category)}
+                        <span className="inline-flex items-center gap-1.5">
+                          <CatIcon size={14} />
+                          {categoryLabel(t.category)}
+                        </span>
                       </td>
                     </tr>
                   )}
                   <tr className="border-b last:border-0 hover:bg-gray-50">
                     <td className="px-4 py-3 font-medium">{t.name}</td>
                     <td className="px-4 py-3 text-sm">
-                      <span className="inline-flex items-center gap-1 text-gray-600">
-                        <span>{categoryIcon(t.category)}</span>
+                      <span className="inline-flex items-center gap-1.5 text-gray-600">
+                        <CatIcon size={14} />
                         <span>{categoryLabel(t.category)}</span>
                       </span>
                     </td>
@@ -421,21 +425,24 @@ export default function AdminPermitTypesPage() {
                   หมวดหมู่ <span className="text-rose-500">*</span>
                 </label>
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                  {PERMIT_CATEGORIES.map((c) => (
-                    <button
-                      key={c.key}
-                      type="button"
-                      onClick={() => setForm({ ...form, category: c.key })}
-                      className={`flex items-center gap-2 px-3 py-2 rounded-xl border text-sm transition ${
-                        form.category === c.key
-                          ? 'bg-blue-50 border-blue-400 text-blue-700 font-medium'
-                          : 'bg-white border-gray-200 hover:bg-gray-50'
-                      }`}
-                    >
-                      <span>{c.icon}</span>
-                      <span className="text-left flex-1">{c.label}</span>
-                    </button>
-                  ))}
+                  {PERMIT_CATEGORIES.map((c) => {
+                    const Icon = c.icon
+                    return (
+                      <button
+                        key={c.key}
+                        type="button"
+                        onClick={() => setForm({ ...form, category: c.key })}
+                        className={`flex items-center gap-2 px-3 py-2 rounded-xl border text-sm transition ${
+                          form.category === c.key
+                            ? 'bg-blue-50 border-blue-400 text-blue-700 font-medium'
+                            : 'bg-white border-gray-200 hover:bg-gray-50'
+                        }`}
+                      >
+                        <Icon size={16} />
+                        <span className="text-left flex-1">{c.label}</span>
+                      </button>
+                    )
+                  })}
                 </div>
               </div>
               <div>
