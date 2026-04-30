@@ -33,6 +33,7 @@ export default function BillingSettingsPage() {
 
   async function uploadQr(file: File) {
     setUploading(true)
+    setError(null)
     try {
       const fd = new FormData()
       fd.append('files', file)
@@ -40,12 +41,39 @@ export default function BillingSettingsPage() {
       const res = await fetch('/api/permits/upload', { method: 'POST', body: fd })
       const d = await res.json()
       if (!res.ok) throw new Error(d.error || 'อัปโหลดไม่สำเร็จ')
-      setCentralQrUrl(d.files[0]?.url || null)
+      const url = d.files[0]?.url
+      if (!url) throw new Error('Cloudinary ไม่ได้คืน URL')
+      setCentralQrUrl(url)
+
+      // Auto-save QR เพื่อไม่ต้องกดบันทึกซ้ำ
+      const saveRes = await fetch('/api/admin/billing/settings', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ centralQrUrl: url }),
+      })
+      if (!saveRes.ok) {
+        const e = await saveRes.json().catch(() => ({}))
+        throw new Error(e.error || 'บันทึก QR ไม่สำเร็จ')
+      }
+      setSavedMsg('อัปโหลดและบันทึก QR แล้ว')
+      setTimeout(() => setSavedMsg(null), 3000)
     } catch (e) {
-      alert(e instanceof Error ? e.message : 'อัปโหลดไม่สำเร็จ')
+      setError(e instanceof Error ? e.message : 'อัปโหลดไม่สำเร็จ')
     } finally {
       setUploading(false)
     }
+  }
+
+  async function removeQr() {
+    if (!confirm('ลบ QR ออกจากระบบ?')) return
+    setCentralQrUrl(null)
+    await fetch('/api/admin/billing/settings', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ centralQrUrl: null }),
+    })
+    setSavedMsg('ลบ QR แล้ว')
+    setTimeout(() => setSavedMsg(null), 2000)
   }
 
   function addBank() {
@@ -145,10 +173,10 @@ export default function BillingSettingsPage() {
           )}
           {centralQrUrl && (
             <button
-              onClick={() => setCentralQrUrl(null)}
+              onClick={removeQr}
               className="text-rose-600 text-sm hover:underline"
             >
-              ลบ
+              ลบ QR
             </button>
           )}
         </div>
