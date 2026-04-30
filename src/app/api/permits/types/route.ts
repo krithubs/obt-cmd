@@ -15,11 +15,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(types)
   } catch (error) {
     console.error('Error fetching permit types:', error)
-    const detail = error instanceof Error ? error.message : String(error)
-    return NextResponse.json(
-      { error: 'เกิดข้อผิดพลาด', detail, dbHost: (process.env.DATABASE_URL || '').replace(/:[^:@]+@/, ':***@').slice(0, 80) },
-      { status: 500 }
-    )
+    return NextResponse.json({ error: 'เกิดข้อผิดพลาด' }, { status: 500 })
   }
 }
 
