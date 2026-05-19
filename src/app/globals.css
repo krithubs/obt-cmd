@@ -5,13 +5,27 @@
 @tailwind utilities;
 
 @layer base {
+  :root {
+    --brand-surface: #FBF5E8;
+    --brand-background: #F5EAD6;
+    --brand-card: #E8D7BC;
+    --brand-primary: #D4B896;
+    --brand-primary-active: #B89968;
+    --brand-primary-dark: #5D4A30;
+    --brand-brown: #5D4A35;
+    --brand-heading: #3A2D1E;
+    --brand-muted: #8B7763;
+    --brand-disabled: #B8A98E;
+    --brand-success: #7CB342;
+  }
+
   * {
-    border-color: #e5e7eb;
+    border-color: var(--brand-card);
     font-family: 'Noto Sans Thai', 'Inter', sans-serif;
   }
   body {
-    background-color: #f8fafc;
-    color: #1e293b;
+    background-color: var(--brand-background);
+    color: var(--brand-heading);
     font-family: 'Noto Sans Thai', 'Inter', sans-serif;
     line-height: 1.6;
   }
@@ -64,71 +78,71 @@
   }
   
   .gradient-soft {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, var(--brand-primary) 0%, var(--brand-brown) 100%);
   }
   
   .gradient-soft-blue {
-    background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+    background: linear-gradient(135deg, var(--brand-primary-active) 0%, var(--brand-primary-dark) 100%);
   }
   
   /* Soft borders */
   .border-soft {
-    border: 1px solid rgba(226, 232, 240, 0.8);
+    border: 1px solid rgba(232, 215, 188, 0.8);
   }
   
   .border-soft-focus {
-    border: 2px solid rgba(59, 130, 246, 0.5);
+    border: 2px solid rgba(184, 153, 104, 0.55);
   }
   
   /* Soft buttons */
   .btn-soft {
-    background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
-    border: 1px solid rgba(226, 232, 240, 0.8);
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+    background: linear-gradient(135deg, #FBF5E8 0%, #F5EAD6 100%);
+    border: 1px solid rgba(232, 215, 188, 0.8);
+    box-shadow: 0 2px 8px rgba(58, 45, 30, 0.05);
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   }
   
   .btn-soft:hover {
     transform: translateY(-2px);
-    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.12);
+    box-shadow: 0 8px 25px rgba(58, 45, 30, 0.14);
   }
   
   .btn-soft-primary {
-    background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
-    box-shadow: 0 4px 20px rgba(59, 130, 246, 0.3);
+    background: linear-gradient(135deg, #8B7048 0%, #5D4A30 100%);
+    box-shadow: 0 4px 20px rgba(93, 74, 48, 0.3);
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   }
   
   .btn-soft-primary:hover {
     transform: translateY(-2px);
-    box-shadow: 0 8px 30px rgba(59, 130, 246, 0.4);
+    box-shadow: 0 8px 30px rgba(93, 74, 48, 0.42);
   }
   
   /* Soft cards */
   .card-soft {
-    background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
-    border: 1px solid rgba(226, 232, 240, 0.6);
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
+    background: linear-gradient(135deg, #FFFFFF 0%, #FBF5E8 100%);
+    border: 1px solid rgba(232, 215, 188, 0.65);
+    box-shadow: 0 4px 20px rgba(58, 45, 30, 0.07);
     backdrop-filter: blur(10px);
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   }
   
   .card-soft:hover {
     transform: translateY(-4px);
-    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 12px 40px rgba(58, 45, 30, 0.12);
   }
   
   /* Soft inputs */
   .input-soft {
-    background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
-    border: 1px solid rgba(226, 232, 240, 0.8);
-    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.02);
+    background: linear-gradient(135deg, #FFFFFF 0%, #FBF5E8 100%);
+    border: 1px solid rgba(232, 215, 188, 0.85);
+    box-shadow: inset 0 2px 4px rgba(58, 45, 30, 0.03);
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   }
   
   .input-soft:focus {
-    border-color: rgba(59, 130, 246, 0.5);
-    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1), inset 0 2px 4px rgba(0, 0, 0, 0.02);
+    border-color: rgba(184, 153, 104, 0.65);
+    box-shadow: 0 0 0 3px rgba(212, 184, 150, 0.22), inset 0 2px 4px rgba(58, 45, 30, 0.03);
   }
 }
 

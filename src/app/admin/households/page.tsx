@@ -277,7 +277,7 @@ export default function AdminHouseholdsPage() {
             <Home className="text-blue-600" /> ทะเบียนบ้าน
           </h1>
           <p className="text-gray-500 mt-1 text-sm">
-            ข้อมูลบ้านและเจ้าบ้านในเขต อบต. ใช้เป็น key ค้นหาบิลของชาวบ้าน
+            ข้อมูลบ้านและเจ้าบ้านในเขตผู้ใหญ่ลี ใช้เป็น key ค้นหาบิลของชาวบ้าน
           </p>
         </div>
         <div className="flex items-center gap-2">

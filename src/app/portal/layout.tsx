@@ -2,8 +2,8 @@ import { Metadata } from 'next'
 import PortalLayoutClient from './PortalLayoutClient'
 
 export const metadata: Metadata = {
-  title: 'อบต. โค้ดมันเดย์ - ระบบแจ้งเหตุ',
-  description: 'พอร์ทัลสำหรับประชาชนในการแจ้งปัญหาและร้องเรียน อบต. โค้ดมันเดย์',
+  title: 'ผู้ใหญ่ลี - ระบบแจ้งเหตุ',
+  description: 'พอร์ทัลสำหรับประชาชนในการแจ้งปัญหาและร้องเรียน ผู้ใหญ่ลี',
 }
 
 export default function PortalLayout({

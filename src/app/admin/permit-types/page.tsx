@@ -626,7 +626,7 @@ export default function AdminPermitTypesPage() {
                       </label>
                       <textarea
                         rows={2}
-                        placeholder="เช่น ธ.ออมสิน เลขที่ 020-...   ชื่อบัญชี อบต. CODEMONDAY"
+                        placeholder="เช่น ธ.ออมสิน เลขที่ 020-...   ชื่อบัญชี ผู้ใหญ่ลี PHUYAILEE"
                         value={form.paymentNote}
                         onChange={(e) =>
                           setForm({ ...form, paymentNote: e.target.value })

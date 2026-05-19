@@ -2,8 +2,9 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Eye, EyeOff, Lock, Mail, Home } from 'lucide-react'
+import { Eye, EyeOff, Lock, Mail } from 'lucide-react'
 import { ButtonSpinner } from '@/components/ui'
+import BrandLogo from '@/components/BrandLogo'
 
 export default function AdminLogin() {
   const [formData, setFormData] = useState({
@@ -64,10 +65,8 @@ export default function AdminLogin() {
       <div className="relative w-full max-w-md">
         {/* Logo & Header */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-blue-500 to-blue-700 rounded-3xl shadow-2xl shadow-blue-500/30 mb-6">
-            <Home className="w-10 h-10 text-white" />
-          </div>
-          <h1 className="text-3xl font-bold text-white mb-2">อบต. CODEMONDAY</h1>
+          <BrandLogo className="inline-block w-24 h-24 rounded-3xl shadow-2xl shadow-blue-500/30 mb-6" />
+          <h1 className="text-3xl font-bold text-white mb-2">ผู้ใหญ่ลี PHUYAILEE</h1>
           <p className="text-blue-200 text-sm">ระบบจัดการคำร้อง สำหรับเจ้าหน้าที่</p>
         </div>
 
@@ -97,7 +96,7 @@ export default function AdminLogin() {
                   value={formData.email}
                   onChange={handleChange}
                   className="w-full pl-11 pr-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white placeholder-blue-300/40 focus:outline-none focus:ring-2 focus:ring-blue-400/50 focus:border-blue-400/50 text-sm transition-all"
-                  placeholder="admin@codemonday.go.th"
+                  placeholder="admin@phuyailee.go.th"
                 />
               </div>
             </div>
@@ -156,7 +155,7 @@ export default function AdminLogin() {
 
         {/* Footer */}
         <p className="text-center text-blue-300/40 text-xs mt-6">
-          องค์การบริหารส่วนตำบล CODEMONDAY สีลม เขตบางรัก กรุงเทพมหานคร
+          ผู้ใหญ่ลี PHUYAILEE สีลม เขตบางรัก กรุงเทพมหานคร
         </p>
       </div>
     </div>

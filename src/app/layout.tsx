@@ -5,8 +5,8 @@ import './globals.css'
 const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
-  title: 'ระบบแจ้งเหตุ อบต',
-  description: 'ระบบร้องเรียนปัญหาขององค์การบริหารส่วนตำบล',
+  title: 'ระบบแจ้งเหตุผู้ใหญ่ลี',
+  description: 'ระบบร้องเรียนปัญหาของผู้ใหญ่ลี',
 }
 
 export default function RootLayout({

@@ -91,7 +91,7 @@ export default function BillingLookupPage() {
                 type="text"
                 value={fullName}
                 onChange={(e) => setFullName(e.target.value)}
-                placeholder="ตามที่ลงทะเบียนกับ อบต."
+                placeholder="ตามที่ลงทะเบียนกับผู้ใหญ่ลี"
                 className="w-full px-3 py-2 rounded-xl border border-gray-200 focus:ring-2 focus:ring-blue-300 focus:border-blue-400 outline-none"
               />
             </div>
@@ -107,7 +107,7 @@ export default function BillingLookupPage() {
             <p className="text-xs text-gray-500 leading-relaxed pt-2 flex items-start gap-1.5">
               <Lightbulb size={14} className="mt-0.5 text-amber-500 shrink-0" />
               <span>
-                บ้านเลขที่และชื่อเจ้าบ้านต้องตรงกับที่ลงทะเบียนไว้ที่ อบต.
+                บ้านเลขที่และชื่อเจ้าบ้านต้องตรงกับที่ลงทะเบียนไว้กับผู้ใหญ่ลี
                 ถ้ายังไม่เคยลงทะเบียน กรุณาติดต่อเจ้าหน้าที่
               </span>
             </p>

@@ -2,9 +2,10 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { Newspaper, Calendar, Facebook, ChevronLeft, User } from 'lucide-react'
+import { Newspaper, Calendar, Facebook, ChevronLeft } from 'lucide-react'
 import PortalNavbar from '@/components/PortalNavbar'
 import Footer from '@/components/Footer'
+import BrandLogo from '@/components/BrandLogo'
 import { formatDate } from '@/lib/dateFormat'
 import { Skeleton } from '@/components/ui'
 import DOMPurify from 'dompurify'
@@ -200,11 +201,9 @@ export default function NewsPage() {
                 <article key={item.id} className="bg-white rounded-xl shadow-sm overflow-hidden hover:shadow-md transition-shadow">
                   {/* Post Header */}
                   <div className="flex items-center gap-3 px-5 pt-4 pb-3">
-                    <div className="w-10 h-10 rounded-full bg-blue-600 flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
-                      {item.author?.name?.charAt(0) || 'อ'}
-                    </div>
+                    <BrandLogo className="w-10 h-10 rounded-full flex-shrink-0" />
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-semibold text-gray-900 truncate">{item.author?.name || 'อบต. โค้ดมันเดย์'}</p>
+                      <p className="text-sm font-semibold text-gray-900 truncate">{item.author?.name || 'ผู้ใหญ่ลี'}</p>
                       <div className="flex items-center gap-2 text-xs text-gray-500">
                         <Calendar className="w-3 h-3" />
                         {formatDate(item.createdAt)}

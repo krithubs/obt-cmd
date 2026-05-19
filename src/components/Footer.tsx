@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import { Phone, Globe, MapPin, Facebook } from 'lucide-react'
+import BrandLogo from './BrandLogo'
 
 export default function Footer() {
   return (
@@ -11,10 +12,8 @@ export default function Footer() {
         <div className="sm:hidden space-y-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-2">
-              <div className="w-9 h-9 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center">
-                <span className="text-white font-bold text-sm">อบต</span>
-              </div>
-              <span className="font-bold">อบต. CODEMONDAY</span>
+              <BrandLogo className="w-9 h-9 rounded-xl" />
+              <span className="font-bold">ผู้ใหญ่ลี PHUYAILEE</span>
             </div>
             <a href="tel:0615176466" className="text-blue-300 text-sm flex items-center gap-1">
               <Phone className="w-4 h-4" />
@@ -22,7 +21,7 @@ export default function Footer() {
             </a>
           </div>
           <div className="flex items-center gap-4 text-xs text-gray-400">
-            <a href="https://www.facebook.com/CODEMONDAYBangkok" target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 hover:text-white">
+            <a href="https://www.facebook.com/PHUYAILEEBangkok" target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 hover:text-white">
               <Facebook className="w-3.5 h-3.5" /> Facebook
             </a>
             <span className="flex items-center gap-1">
@@ -30,7 +29,7 @@ export default function Footer() {
             </span>
           </div>
           <div className="text-[10px] text-gray-500 text-center">
-            © 2024 อบต. CODEMONDAY · เวลาราชการ 08:30-16:30 น.
+            © 2024 ผู้ใหญ่ลี PHUYAILEE · เวลาราชการ 08:30-16:30 น.
           </div>
         </div>
 
@@ -39,16 +38,14 @@ export default function Footer() {
           {/* Organization Info */}
           <div className="space-y-4">
             <div className="flex items-center space-x-3">
-              <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl flex items-center justify-center shadow-soft">
-                <span className="text-white font-bold text-lg">อบต</span>
-              </div>
+              <BrandLogo className="w-12 h-12 rounded-2xl" />
               <div>
-                <h3 className="text-xl font-bold">อบต. CODEMONDAY</h3>
+                <h3 className="text-xl font-bold">ผู้ใหญ่ลี PHUYAILEE</h3>
                 <p className="text-blue-200 text-sm">สีลม เขตบางรัก กรุงเทพมหานคร</p>
               </div>
             </div>
             <p className="text-gray-300 text-sm leading-relaxed">
-              องค์การบริหารส่วนตำบล CODEMONDAY
+              ผู้ใหญ่ลี PHUYAILEE
               พร้อมให้บริการประชาชนด้วยความเอาใจใส่
               และประสิทธิภาพสูงสุด
             </p>
@@ -78,7 +75,7 @@ export default function Footer() {
               </div>
               <div className="flex items-center space-x-3 text-gray-300">
                 <Globe className="w-5 h-5 text-blue-400 flex-shrink-0" />
-                <a href="http://www.codemonday.go.th" target="_blank" rel="noopener noreferrer" className="text-sm hover:text-white transition-colors">www.codemonday.go.th</a>
+                <a href="http://www.phuyailee.go.th" target="_blank" rel="noopener noreferrer" className="text-sm hover:text-white transition-colors">www.phuyailee.go.th</a>
               </div>
               <div className="flex items-center space-x-3 text-gray-300">
                 <MapPin className="w-5 h-5 text-blue-400 flex-shrink-0" />
@@ -86,9 +83,9 @@ export default function Footer() {
               </div>
               <div className="flex items-center space-x-3 text-gray-300">
                 <Facebook className="w-5 h-5 text-blue-400 flex-shrink-0" />
-                <a href="https://www.facebook.com/CODEMONDAYBangkok" target="_blank" rel="noopener noreferrer" className="text-sm hover:text-white transition-colors">@codemonday</a>
+                <a href="https://www.facebook.com/PHUYAILEEBangkok" target="_blank" rel="noopener noreferrer" className="text-sm hover:text-white transition-colors">@phuyailee</a>
               </div>
-              <a href="https://www.facebook.com/CODEMONDAYBangkok" target="_blank" rel="noopener noreferrer" className="inline-flex items-center space-x-2 mt-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors">
+              <a href="https://www.facebook.com/PHUYAILEEBangkok" target="_blank" rel="noopener noreferrer" className="inline-flex items-center space-x-2 mt-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors">
                 <Facebook className="w-4 h-4" />
                 <span>ติดตามเราบน Facebook</span>
               </a>
@@ -101,7 +98,7 @@ export default function Footer() {
       <div className="hidden sm:block max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         <div className="flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0">
           <div className="text-gray-400 text-sm">
-            © 2024 องค์การบริหารส่วนตำบล CODEMONDAY. สงวนลิขสิทธิ์ทั้งหมด
+            © 2024 ผู้ใหญ่ลี PHUYAILEE. สงวนลิขสิทธิ์ทั้งหมด
           </div>
           <div className="flex items-center space-x-6 text-gray-400 text-sm">
             <span>เวลาราชการ: 08:30 - 16:30 น.</span>

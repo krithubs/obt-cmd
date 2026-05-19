@@ -29,7 +29,7 @@ export async function POST(request: NextRequest) {
     })
     if (!household || !household.isActive)
       return NextResponse.json(
-        { error: 'ไม่พบบ้านเลขที่นี้ในระบบ — กรุณาติดต่อเจ้าหน้าที่ อบต.' },
+        { error: 'ไม่พบบ้านเลขที่นี้ในระบบ — กรุณาติดต่อเจ้าหน้าที่ผู้ใหญ่ลี' },
         { status: 404 }
       )
 

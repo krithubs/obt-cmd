@@ -10,7 +10,6 @@ import {
   TrendingUp,
   AlertCircle,
   LogOut,
-  Home,
   FileCheck,
   Settings,
   ChevronDown,
@@ -19,6 +18,7 @@ import {
   Receipt,
   HomeIcon,
 } from 'lucide-react'
+import BrandLogo from './BrandLogo'
 
 type LeafItem = { href: string; label: string; icon: React.ComponentType<{ className?: string }> }
 type GroupItem = {
@@ -87,11 +87,9 @@ export default function AdminSidebar() {
     <div className="w-64 bg-gradient-to-b from-gray-900 to-gray-800 min-h-screen sticky top-0 flex flex-col">
       <div className="p-6">
         <div className="flex items-center space-x-3">
-          <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-700 rounded-xl flex items-center justify-center shadow-lg shadow-blue-500/25">
-            <Home className="w-5 h-5 text-white" />
-          </div>
+          <BrandLogo className="w-10 h-10 rounded-xl shadow-lg shadow-blue-500/25" />
           <div>
-            <h2 className="text-white text-lg font-bold">อบต. CODEMONDAY</h2>
+            <h2 className="text-white text-lg font-bold">ผู้ใหญ่ลี PHUYAILEE</h2>
             <p className="text-gray-400 text-xs">ระบบจัดการคำร้อง</p>
           </div>
         </div>
@@ -179,7 +177,7 @@ export default function AdminSidebar() {
           </div>
           <div className="flex-1 min-w-0">
             <p className="text-white text-sm font-medium truncate">Administrator</p>
-            <p className="text-gray-500 text-xs truncate">admin@codemonday.go.th</p>
+            <p className="text-gray-500 text-xs truncate">admin@phuyailee.go.th</p>
           </div>
         </div>
         <Link

@@ -254,7 +254,7 @@ export default function PortalHome() {
             <div className="flex flex-col lg:flex-row items-center justify-between">
               <div className="lg:w-2/3 mb-6 lg:mb-0">
                 <h2 className="text-3xl font-bold mb-4 text-thai-heading">ศูนย์แจ้งเหตุบรรเทาทุกข์ออนไลน์ตลอด 24 ชั่วโมง</h2>
-                <p className="text-lg mb-6 text-blue-100 text-thai">องค์การบริหารส่วนตำบล CODEMONDAY</p>
+                <p className="text-lg mb-6 text-blue-100 text-thai">ผู้ใหญ่ลี PHUYAILEE</p>
                 
                 <div className="flex flex-col sm:flex-row gap-4">
                   <Link href="/portal/complaint-form" className="inline-flex items-center px-6 py-3 bg-white text-blue-600 font-semibold rounded-xl hover:bg-blue-50 transition-all duration-300 transform hover:scale-105 shadow-lg text-thai">

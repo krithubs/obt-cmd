@@ -114,7 +114,28 @@ function generateLocationBreakdown() {
   }))
 }
 
-const PIE_COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4', '#84cc16']
+const CHART_COLORS = {
+  primary: '#5D4A30',
+  primarySoft: '#D4B896',
+  brown: '#5D4A35',
+  muted: '#8B7763',
+  grid: '#E8D7BC',
+  sage: '#7CB342',
+  sageDark: '#558B2F',
+  warm: '#B89968',
+  cream: '#FBF5E8',
+}
+
+const PIE_COLORS = [
+  CHART_COLORS.primary,
+  CHART_COLORS.sage,
+  CHART_COLORS.warm,
+  CHART_COLORS.brown,
+  '#9B8268',
+  '#8B7048',
+  CHART_COLORS.primarySoft,
+  CHART_COLORS.sageDark,
+]
 
 // ─── Animated Number Component ───────────────────────────────────
 function AnimatedNumber({ value, duration = 1000 }: { value: number; duration?: number }) {
@@ -284,9 +305,9 @@ export default function AdminDashboard() {
   }, [monthlyData, currentMonth])
 
   const statusForPie = useMemo(() => [
-    { name: 'สำเร็จ', value: totals.resolved, color: '#10b981' },
-    { name: 'กำลังดำเนินการ', value: totals.inProgress, color: '#f59e0b' },
-    { name: 'รอดำเนินการ', value: totals.pending, color: '#ef4444' },
+    { name: 'สำเร็จ', value: totals.resolved, color: CHART_COLORS.sage },
+    { name: 'กำลังดำเนินการ', value: totals.inProgress, color: CHART_COLORS.warm },
+    { name: 'รอดำเนินการ', value: totals.pending, color: CHART_COLORS.brown },
   ], [totals])
 
   const monthNames = ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.']
@@ -295,7 +316,7 @@ export default function AdminDashboard() {
   if (loading) {
     return (
       <div className="flex-1 flex items-center justify-center min-h-[60vh]">
-        <LoadingSpinner size="lg" text="กำลังโหลดแดชบอร์ด..." subText="ระบบจัดการคำร้อง อบต. CODEMONDAY" />
+        <LoadingSpinner size="lg" text="กำลังโหลดแดชบอร์ด..." subText="ระบบจัดการคำร้อง ผู้ใหญ่ลี PHUYAILEE" />
       </div>
     )
   }
@@ -333,7 +354,7 @@ export default function AdminDashboard() {
               <div className="flex items-center justify-between">
                 <div>
                   <h1 className="text-2xl font-bold text-gray-900">แดชบอร์ด</h1>
-                  <p className="text-sm text-gray-500 mt-0.5">ภาพรวมระบบจัดการคำร้อง อบต. CODEMONDAY</p>
+                  <p className="text-sm text-gray-500 mt-0.5">ภาพรวมระบบจัดการคำร้อง ผู้ใหญ่ลี PHUYAILEE</p>
                 </div>
 
                 <div className="flex items-center space-x-3">
@@ -457,23 +478,23 @@ export default function AdminDashboard() {
                       <AreaChart data={monthlyData.filter(d => d.total > 0)}>
                         <defs>
                           <linearGradient id="gradTotal" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="0%" stopColor="#3b82f6" stopOpacity={0.2} />
-                            <stop offset="100%" stopColor="#3b82f6" stopOpacity={0} />
+                            <stop offset="0%" stopColor={CHART_COLORS.primary} stopOpacity={0.2} />
+                            <stop offset="100%" stopColor={CHART_COLORS.primary} stopOpacity={0} />
                           </linearGradient>
                           <linearGradient id="gradResolved" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="0%" stopColor="#10b981" stopOpacity={0.2} />
-                            <stop offset="100%" stopColor="#10b981" stopOpacity={0} />
+                            <stop offset="0%" stopColor={CHART_COLORS.sage} stopOpacity={0.2} />
+                            <stop offset="100%" stopColor={CHART_COLORS.sage} stopOpacity={0} />
                           </linearGradient>
                         </defs>
-                        <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-                        <XAxis dataKey="month" tick={{ fontSize: 12 }} stroke="#94a3b8" />
-                        <YAxis tick={{ fontSize: 12 }} stroke="#94a3b8" />
+                        <CartesianGrid strokeDasharray="3 3" stroke={CHART_COLORS.grid} />
+                        <XAxis dataKey="month" tick={{ fontSize: 12 }} stroke={CHART_COLORS.muted} />
+                        <YAxis tick={{ fontSize: 12 }} stroke={CHART_COLORS.muted} />
                         <Tooltip
                           contentStyle={{ borderRadius: 12, border: 'none', boxShadow: '0 4px 20px rgba(0,0,0,0.1)' }}
                           formatter={(value: number, name: string) => [value, name === 'total' ? 'ทั้งหมด' : name === 'resolved' ? 'สำเร็จ' : name]}
                         />
-                        <Area type="monotone" dataKey="total" stroke="#3b82f6" strokeWidth={2.5} fill="url(#gradTotal)" name="total" dot={{ r: 4, fill: '#3b82f6' }} activeDot={{ r: 6 }} />
-                        <Area type="monotone" dataKey="resolved" stroke="#10b981" strokeWidth={2.5} fill="url(#gradResolved)" name="resolved" dot={{ r: 4, fill: '#10b981' }} activeDot={{ r: 6 }} />
+                        <Area type="monotone" dataKey="total" stroke={CHART_COLORS.primary} strokeWidth={2.5} fill="url(#gradTotal)" name="total" dot={{ r: 4, fill: CHART_COLORS.primary }} activeDot={{ r: 6 }} />
+                        <Area type="monotone" dataKey="resolved" stroke={CHART_COLORS.sage} strokeWidth={2.5} fill="url(#gradResolved)" name="resolved" dot={{ r: 4, fill: CHART_COLORS.sage }} activeDot={{ r: 6 }} />
                         <Legend formatter={(value) => value === 'total' ? 'ทั้งหมด' : 'สำเร็จ'} />
                       </AreaChart>
                     </ResponsiveContainer>
@@ -524,11 +545,11 @@ export default function AdminDashboard() {
                     <p className="text-sm text-gray-500 mb-4">จำนวนวันในการแก้ไขปัญหาเฉลี่ย</p>
                     <ResponsiveContainer width="100%" height={250}>
                       <BarChart data={monthlyData.filter(d => d.total > 0)}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-                        <XAxis dataKey="month" tick={{ fontSize: 12 }} stroke="#94a3b8" />
-                        <YAxis tick={{ fontSize: 12 }} stroke="#94a3b8" unit=" วัน" />
+                        <CartesianGrid strokeDasharray="3 3" stroke={CHART_COLORS.grid} />
+                        <XAxis dataKey="month" tick={{ fontSize: 12 }} stroke={CHART_COLORS.muted} />
+                        <YAxis tick={{ fontSize: 12 }} stroke={CHART_COLORS.muted} unit=" วัน" />
                         <Tooltip formatter={(value: number) => [`${value} วัน`, 'เวลาเฉลี่ย']} contentStyle={{ borderRadius: 12, border: 'none', boxShadow: '0 4px 20px rgba(0,0,0,0.1)' }} />
-                        <Bar dataKey="avgDays" fill="#8b5cf6" radius={[6, 6, 0, 0]} name="เวลาเฉลี่ย" />
+                        <Bar dataKey="avgDays" fill={CHART_COLORS.brown} radius={[6, 6, 0, 0]} name="เวลาเฉลี่ย" />
                       </BarChart>
                     </ResponsiveContainer>
                   </div>
@@ -661,12 +682,12 @@ export default function AdminDashboard() {
                     <p className="text-sm text-gray-500 mb-4">จำแนกตามหมู่บ้าน</p>
                     <ResponsiveContainer width="100%" height={300}>
                       <BarChart data={locationData} layout="vertical">
-                        <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-                        <XAxis type="number" tick={{ fontSize: 11 }} stroke="#94a3b8" />
-                        <YAxis type="category" dataKey="name" tick={{ fontSize: 11 }} width={90} stroke="#94a3b8" />
+                        <CartesianGrid strokeDasharray="3 3" stroke={CHART_COLORS.grid} />
+                        <XAxis type="number" tick={{ fontSize: 11 }} stroke={CHART_COLORS.muted} />
+                        <YAxis type="category" dataKey="name" tick={{ fontSize: 11 }} width={90} stroke={CHART_COLORS.muted} />
                         <Tooltip contentStyle={{ borderRadius: 12, border: 'none', boxShadow: '0 4px 20px rgba(0,0,0,0.1)' }} />
-                        <Bar dataKey="total" fill="#3b82f6" name="ทั้งหมด" radius={[0, 4, 4, 0]} />
-                        <Bar dataKey="resolved" fill="#10b981" name="สำเร็จ" radius={[0, 4, 4, 0]} />
+                        <Bar dataKey="total" fill={CHART_COLORS.primary} name="ทั้งหมด" radius={[0, 4, 4, 0]} />
+                        <Bar dataKey="resolved" fill={CHART_COLORS.sage} name="สำเร็จ" radius={[0, 4, 4, 0]} />
                         <Legend />
                       </BarChart>
                     </ResponsiveContainer>
@@ -679,14 +700,14 @@ export default function AdminDashboard() {
                   <p className="text-sm text-gray-500 mb-4">คำร้องทั้งหมด vs สำเร็จ vs กำลังดำเนินการ</p>
                   <ResponsiveContainer width="100%" height={350}>
                     <BarChart data={monthlyData.filter(d => d.total > 0)}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-                      <XAxis dataKey="month" tick={{ fontSize: 12 }} stroke="#94a3b8" />
-                      <YAxis tick={{ fontSize: 12 }} stroke="#94a3b8" />
+                      <CartesianGrid strokeDasharray="3 3" stroke={CHART_COLORS.grid} />
+                      <XAxis dataKey="month" tick={{ fontSize: 12 }} stroke={CHART_COLORS.muted} />
+                      <YAxis tick={{ fontSize: 12 }} stroke={CHART_COLORS.muted} />
                       <Tooltip contentStyle={{ borderRadius: 12, border: 'none', boxShadow: '0 4px 20px rgba(0,0,0,0.1)' }} />
                       <Legend />
-                      <Bar dataKey="resolved" name="สำเร็จ" fill="#10b981" radius={[4, 4, 0, 0]} />
-                      <Bar dataKey="inProgress" name="กำลังดำเนินการ" fill="#f59e0b" radius={[4, 4, 0, 0]} />
-                      <Bar dataKey="pending" name="รอดำเนินการ" fill="#ef4444" radius={[4, 4, 0, 0]} />
+                      <Bar dataKey="resolved" name="สำเร็จ" fill={CHART_COLORS.sage} radius={[4, 4, 0, 0]} />
+                      <Bar dataKey="inProgress" name="กำลังดำเนินการ" fill={CHART_COLORS.warm} radius={[4, 4, 0, 0]} />
+                      <Bar dataKey="pending" name="รอดำเนินการ" fill={CHART_COLORS.brown} radius={[4, 4, 0, 0]} />
                     </BarChart>
                   </ResponsiveContainer>
                 </div>

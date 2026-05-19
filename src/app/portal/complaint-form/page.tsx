@@ -296,7 +296,7 @@ export default function ComplaintForm() {
               </div>
               <div>
                 <h1 className="text-3xl font-bold mb-2 text-thai-heading">แจ้งปัญหา / ร้องเรียน</h1>
-                <p className="text-blue-100 text-thai">กรอกข้อมูลด้านล่างเพื่อแจ้งปัญหาให้ อบต. CODEMONDAY ทราบ</p>
+                <p className="text-blue-100 text-thai">กรอกข้อมูลด้านล่างเพื่อแจ้งปัญหาให้ ผู้ใหญ่ลี PHUYAILEE ทราบ</p>
               </div>
             </div>
           </div>

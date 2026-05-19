@@ -6,6 +6,7 @@ import { PageLoading } from '@/components/ui'
 import { useToast } from '@/components/ui/Toast'
 import RichTextEditor from '@/components/ui/RichTextEditor'
 import { formatDate } from '@/lib/dateFormat'
+import BrandLogo from '@/components/BrandLogo'
 
 interface NewsItem {
   id: string
@@ -179,7 +180,7 @@ export default function NewsPage() {
         {/* Create Post Box */}
         <div className="bg-white rounded-xl shadow-sm p-4 mb-4">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-blue-600 flex items-center justify-center text-white font-bold text-sm flex-shrink-0">อบต</div>
+            <BrandLogo className="w-10 h-10 rounded-full flex-shrink-0" />
             <button onClick={openAdd} className="flex-1 text-left bg-gray-100 hover:bg-gray-200 rounded-full px-4 py-2.5 text-gray-500 text-sm transition-colors">
               มีอะไรจะประชาสัมพันธ์ไหม?
             </button>
@@ -234,7 +235,7 @@ export default function NewsPage() {
                       {React.createElement(cfg.icon, { className: 'w-5 h-5' })}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-semibold text-gray-900">{item.author?.name || 'อบต. โค้ดมันเดย์'}</p>
+                      <p className="text-sm font-semibold text-gray-900">{item.author?.name || 'ผู้ใหญ่ลี'}</p>
                       <div className="flex items-center gap-1.5 text-xs text-gray-500">
                         <span>{formatDate(item.createdAt)}</span>
                         <span>·</span>
@@ -319,9 +320,9 @@ export default function NewsPage() {
 
             {/* Author Row */}
             <div className="flex items-center gap-3 px-4 py-3">
-              <div className="w-10 h-10 rounded-full bg-blue-600 flex items-center justify-center text-white font-bold text-sm">อบต</div>
+              <BrandLogo className="w-10 h-10 rounded-full flex-shrink-0" />
               <div>
-                <p className="text-sm font-semibold text-gray-900">อบต. โค้ดมันเดย์</p>
+                <p className="text-sm font-semibold text-gray-900">ผู้ใหญ่ลี</p>
                 <div className="flex items-center gap-2">
                   <select
                     value={formData.category}
@@ -416,7 +417,7 @@ export default function NewsPage() {
                   {React.createElement(CATEGORY_CONFIG[selectedNews.category].icon, { className: 'w-5 h-5' })}
                 </div>
                 <div>
-                  <p className="text-sm font-semibold">{selectedNews.author?.name || 'อบต. โค้ดมันเดย์'}</p>
+                  <p className="text-sm font-semibold">{selectedNews.author?.name || 'ผู้ใหญ่ลี'}</p>
                   <p className="text-xs text-gray-500">{formatDate(selectedNews.createdAt)}</p>
                 </div>
               </div>

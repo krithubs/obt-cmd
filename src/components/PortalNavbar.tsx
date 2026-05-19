@@ -4,6 +4,7 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { Menu, X } from 'lucide-react'
+import BrandLogo from './BrandLogo'
 
 const navItems = [
   { href: '/portal', label: 'หน้าแรก' },
@@ -23,12 +24,10 @@ export default function PortalNavbar() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-20">
           <div className="flex items-center space-x-4 sm:space-x-6">
-            <div className="w-12 h-12 sm:w-14 sm:h-14 bg-gradient-to-br from-blue-600 via-blue-500 to-indigo-600 rounded-3xl flex items-center justify-center shadow-soft-lg">
-              <span className="text-white font-bold text-lg sm:text-xl">อบต</span>
-            </div>
+            <BrandLogo className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl shadow-soft-lg" />
             <div>
               <Link href="/portal" className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-gray-900 to-blue-600 bg-clip-text text-transparent">
-                อบต. โค้ดมันเดย์
+                ผู้ใหญ่ลี PHUYAILEE
               </Link>
               <p className="text-xs sm:text-sm text-gray-600 font-medium hidden sm:block">สีลม เขตบางรัก กรุงเทพมหานคร</p>
             </div>
